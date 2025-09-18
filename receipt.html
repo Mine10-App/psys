@@ -4,26 +4,28 @@
 <meta charset="UTF-8">
 <title>Receipt Viewer</title>
 <style>
-  body { font-family: monospace; background: #f4f6f9; padding: 10px; }
-  #receiptBox { max-width:400px; margin:auto; background:#fff; padding:10px; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.1); display:none; }
-  h2,h3 { text-align:center; margin:2px; }
-  .line { border-bottom:1px dashed #000; margin:5px 0; }
-  .row { display:flex; justify-content:space-between; }
-  #searchBox { text-align:center; margin-bottom:15px; }
-  input { padding:5px; width:60%; }
-  button { padding:5px; }
+body { font-family: monospace; font-size: 12px; width: 80mm; padding: 5px; margin: 0 auto; background: #f4f6f9; }
+h2, h3 { text-align: center; margin: 2px 0; }
+.line { border-bottom: 1px dashed #000; margin: 4px 0; }
+.row { display: flex; justify-content: space-between; }
+#receiptBox { background: #fff; padding: 8px; border-radius: 6px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+#searchBox input, #searchBox button { padding:5px; margin-top:5px; }
+@media print { #searchBox, button{display:none;} body{background:#fff; margin:0;} }
 </style>
 </head>
 <body>
 
-<h2 id="companyName"></h2>
+<h2>Receipt Viewer</h2>
 
 <div id="searchBox">
   <input type="number" id="searchReceipt" placeholder="Enter Receipt No">
   <button onclick="searchReceipt()">Search</button>
 </div>
 
-<div id="receiptBox">
+<div id="receiptBox" style="display:none;">
+  <h2 id="companyName"></h2>
+  <p id="companyAddress" style="text-align:center; margin:2px;"></p>
+  <p id="companyPhone" style="text-align:center; margin:2px;"></p>
   <h3>Booking Receipt</h3>
   <div class="line"></div>
   <p>Receipt No: <span id="rNo"></span></p>
@@ -39,7 +41,7 @@
   <div id="cashInfo"></div>
   <div class="line"></div>
   <p style="text-align:center;">Valid for 3 hours only</p>
-  <button onclick="window.print()" style="width:100%; margin-top:8px; padding:8px;">Print Receipt</button>
+  <button onclick="window.print()" style="width:100%;margin-top:8px;padding:8px;">Print Receipt</button>
 </div>
 
 <script src="Co.js"></script>
@@ -48,35 +50,45 @@
 <script src="fire1.js"></script>
 
 <script>
-// Company
-document.getElementById("companyName").textContent = companyName || "My Company";
+// Fill header
+document.getElementById("companyName").textContent = companyInfo.name;
+document.getElementById("companyAddress").textContent = companyInfo.address;
+document.getElementById("companyPhone").textContent = companyInfo.phone;
 
+// Render receipt
 function renderReceipt(data){
-  document.getElementById("receiptBox").style.display="block";
-  document.getElementById("rNo").textContent = data.receiptNo || "";
-  document.getElementById("rDate").textContent = data.date || "";
-  document.getElementById("rName").textContent = data.name || "";
-  document.getElementById("rFlight").textContent = data.flight || "";
-  document.getElementById("rSeat").textContent = data.seat || "";
+  document.getElementById("receiptBox").style.display = "block";
+  document.getElementById("rNo").textContent = data.receiptNo||"";
+  document.getElementById("rDate").textContent = data.date||"";
+  document.getElementById("rName").textContent = data.name||"";
+  document.getElementById("rFlight").textContent = data.flight||"";
+  document.getElementById("rSeat").textContent = data.seat||"";
   document.getElementById("rAdults").textContent = data.adults??0;
   document.getElementById("rKids").textContent = data.kids??0;
   document.getElementById("rGST").textContent = (data.gst??0).toFixed(2);
-  document.getElementById("rTotal").textContent = (data.total??0).toFixed(2) + " " + (data.currency||"");
+  document.getElementById("rTotal").textContent = (data.total??0).toFixed(2)+" "+(data.currency||"");
   document.getElementById("rPayment").textContent = data.paymentType||"";
   if(data.paymentType==="Cash"){
-    document.getElementById("cashInfo").innerHTML = `<div class="row"><span>Given:</span><span>${(data.givenAmount??0).toFixed(2)}</span></div><div class="row"><span>Balance:</span><span>${(data.balance??0).toFixed(2)}</span></div>`;
+    document.getElementById("cashInfo").innerHTML=
+      `<div class="row"><span>Given:</span><span>${(data.givenAmount??0).toFixed(2)}</span></div>
+       <div class="row"><span>Balance:</span><span>${(data.balance??0).toFixed(2)}</span></div>`;
   } else { document.getElementById("cashInfo").innerHTML=""; }
 }
 
+// Search by receipt
 async function searchReceipt(){
   const receiptNo = parseInt(document.getElementById("searchReceipt").value);
-  if(!receiptNo){ alert("Enter receipt number"); return; }
-  try{
+  if(!receiptNo){ alert("Enter valid receipt number"); return; }
+  try {
     const snapshot = await db.collection("bookings").where("receiptNo","==",receiptNo).limit(1).get();
-    if(snapshot.empty){ alert("Receipt not found"); return; }
+    if(snapshot.empty){ alert("No receipt found"); return; }
     renderReceipt(snapshot.docs[0].data());
-  } catch(err){ console.error(err); alert("Error fetching receipt: "+err.message); }
+  } catch(err){
+    alert("Error fetching receipt: "+err.message);
+    console.error(err);
+  }
 }
 </script>
+
 </body>
 </html>
