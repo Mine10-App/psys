@@ -236,21 +236,26 @@ async function printReceipt(receiptNumber){
         <h2>${companyInfo.name}</h2>
         <p>${companyInfo.address}</p>
         <p>${companyInfo.phone}</p>
-        <h3>Booking Receipt</h3>
+        <h3>Payment Receipt</h3>
         <div class="receipt-line"></div>
-        <p>Receipt No: ${booking.receiptNo}</p>
-        <p>Date: ${booking.date}</p>
-        <p>Name: ${booking.name}</p>
-        <p>Flight No: ${booking.flight}</p>
-        <p>Seat No: ${booking.seat}</p>
-        <p>Adults: ${booking.adults ?? 0}</p>
-        <p>Kids: ${booking.kids ?? 0}</p>
-        <p>GST: ${(booking.gst ?? 0).toFixed(2)}</p>
-        <p>Total: ${(booking.total ?? 0).toFixed(2)} ${booking.currency}</p>
-        <p>Payment: ${booking.paymentType}</p>
-        ${booking.paymentType==="Cash"?`<p>Given: ${(booking.givenAmount??0).toFixed(2)}</p><p>Balance: ${(booking.balance??0).toFixed(2)}</p>`:""}
+        <table style="width:100%; font-size:12px;">
+          <tr><td>Receipt No:</td><td style="text-align:right;">${booking.receiptNo}</td></tr>
+          <tr><td>Date:</td><td style="text-align:right;">${booking.date}</td></tr>
+          <tr><td>Name:</td><td style="text-align:right;">${booking.name}</td></tr>
+          <tr><td>Flight No:</td><td style="text-align:right;">${booking.flight}</td></tr>
+          <tr><td>Seat No:</td><td style="text-align:right;">${booking.seat}</td></tr>
+          <tr><td>Adults:</td><td style="text-align:right;">${booking.adults ?? 0}</td></tr>
+          <tr><td>Kids:</td><td style="text-align:right;">${booking.kids ?? 0}</td></tr>
+          <tr><td>GST:</td><td style="text-align:right;">${(booking.gst ?? 0).toFixed(2)}</td></tr>
+          <tr><td>Total:</td><td style="text-align:right;">${(booking.total ?? 0).toFixed(2)} ${booking.currency}</td></tr>
+          <tr><td>Payment:</td><td style="text-align:right;">${booking.paymentType}</td></tr>
+          ${booking.paymentType==="Cash"
+            ? `<tr><td>Given:</td><td style="text-align:right;">${(booking.givenAmount??0).toFixed(2)}</td></tr>
+               <tr><td>Balance:</td><td style="text-align:right;">${(booking.balance??0).toFixed(2)}</td></tr>`
+            : ""}
+        </table>
         <div class="receipt-line"></div>
-        <p>This package is valid for 3 hours</p>
+        <p style="text-align:center;">This package is valid for 3 hours</p>
       </div>
     `;
 
@@ -264,6 +269,10 @@ async function printReceipt(receiptNumber){
         body{font-family:monospace; font-size:12px; padding:5px; width:80mm;}
         h2,h3,p{text-align:center; margin:2px;}
         .receipt-line{border-bottom:1px dashed #000;margin:5px 0;}
+        table{width:100%; border-collapse:collapse;}
+        td{padding:2px 0;}
+        td:first-child{text-align:left;}
+        td:last-child{text-align:right;}
         @media print{body{margin:0;}}
       </style>
       </head><body>${htmlReceipt}</body></html>`);
@@ -273,6 +282,7 @@ async function printReceipt(receiptNumber){
     w.close();
   } catch(err){ alert("Error printing receipt: "+err.message); console.error(err);}
 }
+
 
 // Event listeners
 [currencyType, rateType, adultCount, kidCount, givenAmount].forEach(el=>{
