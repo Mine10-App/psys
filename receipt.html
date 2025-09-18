@@ -1,8 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Cash Receipt</title>
 <style>
   body { font-family: monospace; background: #f4f6f9; padding: 20px; }
   #receiptContainer { 
@@ -19,110 +14,21 @@
   .void { color: red; font-weight: bold; text-align: center; font-size: 1.2em; margin: 10px 0; }
   button { margin-top: 10px; width: 100%; padding: 8px; cursor: pointer; }
   input { width: 100%; padding: 5px; margin-bottom: 10px; }
-</style>
-</head>
-<body>
 
-<h2>Print Cash Receipt</h2>
-
-<input type="number" id="receiptInput" placeholder="Enter Receipt No">
-<button id="fetchBtn">Generate Receipt</button>
-<button id="printBtn" style="display:none;">Print Receipt</button>
-
-<div id="receiptContainer" style="display:none;"></div>
-
-<script src="Co.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-<script src="fire1.js"></script>
-
-<script>
-
-
-const receiptInput = document.getElementById("receiptInput");
-const fetchBtn = document.getElementById("fetchBtn");
-const printBtn = document.getElementById("printBtn");
-const receiptContainer = document.getElementById("receiptContainer");
-
-fetchBtn.addEventListener("click", async () => {
-  const receiptNo = parseInt(receiptInput.value);
-  if(!receiptNo) return alert("Enter a valid receipt number");
-
-  try {
-    const snapshot = await db.collection("bookings")
-      .where("receiptNo", "==", receiptNo)
-      .limit(1)
-      .get();
-
-    if(snapshot.empty){
-      receiptContainer.style.display = "block";
-      receiptContainer.innerHTML = "<p style='text-align:center;'>Receipt not found</p>";
-      printBtn.style.display = "none";
-      return;
+  /* Print-specific styling */
+  @media print {
+    body {
+      background: #fff;
+      padding: 0;
+      margin: 0;
     }
-
-    const data = snapshot.docs[0].data();
-
-    // Build receipt
-    let html = `<h2>${companyInfo.name}</h2>`;
-    html += `<div style="text-align:center;">${companyInfo.address}<br>${companyInfo.phone}</div>`;
-    
-
-    // Show VOID if applicable
-    if(data.voided){
-      html += `<div class="void">VOID</div>`;
-      if(data.voidReason){
-        html += `<div class="void">Reason: ${data.voidReason}</div>`;
-      }
+    h2 { display: none; }         /* Hide page heading */
+    button, input { display: none !important; }  /* Hide UI */
+    #receiptContainer {
+      border: none;
+      width: 80mm;   /* matches your roll width */
+      margin: 0;
+      padding: 0;
     }
-
-    html += `
-      <h3>Cash Receipt</h3>
-      <div class="line"></div>
-      <div class="row"><span>Receipt No:</span><span>${data.receiptNo}</span></div>
-      <div class="row"><span>Date:</span><span>${data.date}</span></div>
-      <div class="row"><span>Name:</span><span>${data.name}</span></div>
-      <div class="row"><span>Flight:</span><span>${data.flight}</span></div>
-      <div class="row"><span>Seat:</span><span>${data.seat}</span></div>
-      <div class="row"><span>Payment:</span><span>${data.paymentType}</span></div>
-      <div class="row"><span>Currency:</span><span>${data.currency}</span></div>
-      <div class="line"></div>
-      <div class="row"><span>Adults:</span><span>${data.adults ?? 0}</span></div>
-      <div class="row"><span>Kids:</span><span>${data.kids ?? 0}</span></div>
-      <div class="row"><span>GST:</span><span>${(data.gst ?? 0).toFixed(2)}</span></div>
-      <div class="row"><span>Total:</span><span>${(data.total ?? 0).toFixed(2)}</span></div>
-    `;
-
-    if(data.paymentType === "Cash"){
-      html += `
-        <div class="row"><span>Given:</span><span>${(data.givenAmount ?? 0).toFixed(2)}</span></div>
-        <div class="row"><span>Balance:</span><span>${(data.balance ?? 0).toFixed(2)}</span></div>
-      `;
-    }
-
-    html += `
-      <div class="line"></div>
-      <p class="message">This package is valid for 3 hours</p>
-      <p style="text-align:center;">Thank you for your payment!</p>
-    `;
-
-    receiptContainer.style.display = "block";
-    receiptContainer.innerHTML = html;
-    printBtn.style.display = "block";
-
-  } catch(err){
-    console.error("Error fetching receipt:", err);
-    receiptContainer.style.display = "block";
-    receiptContainer.innerHTML = "<p style='text-align:center;color:red;'>Error fetching receipt</p>";
-    printBtn.style.display = "none";
   }
-});
-
-// Print button
-printBtn.addEventListener("click", () => {
-  window.print();
-});
-</script>
-
-</body>
-</html>
+</style>
