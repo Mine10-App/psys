@@ -2,72 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Booking Form</title>
+<title>Walk-In</title>
 <style>
-  body { 
-    font-family: Arial, sans-serif; 
-    background: #f4f6f9; 
-    margin: 10px; 
-  }
-  h2 { 
-    text-align: center; 
-    color: #333; 
-    margin-bottom: 15px;
-  }
-  form { 
-    max-width: 800px; 
-    margin: auto; 
-    background: #fff; 
-    padding: 15px; 
-    border-radius: 10px; 
-    box-shadow: 0 3px 15px rgba(0,0,0,0.1); 
-    font-size: 14px;
-  }
-  label { 
-    display: block; 
-    margin-top: 6px; 
-    font-weight: bold; 
-    font-size: 13px;
-  }
-  input, select, button { 
-    padding: 6px; 
-    width: 100%; 
-    margin-top: 3px; 
-    border-radius: 6px; 
-    border: 1px solid #ccc; 
-    box-sizing: border-box; 
-    font-size: 13px;
-  }
+  body { font-family: Arial, sans-serif; background: #f4f6f9; margin: 10px; }
+  h2 { text-align: center; color: #333; margin-bottom: 15px; }
+  form { max-width: 800px; margin: auto; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 3px 15px rgba(0,0,0,0.1); font-size: 14px; }
+  label { display: block; margin-top: 6px; font-weight: bold; font-size: 13px; }
+  input, select, button { padding: 6px; width: 100%; margin-top: 3px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 13px; }
   .readonly-field { background: #f0f0f0; }
-  .form-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 15px; 
-    margin-top: 10px; 
-  }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
   .full-width { grid-column: 1 / -1; }
-  .totals, .cash-section { 
-    display: grid; 
-    grid-template-columns: repeat(2, 1fr); 
-    gap: 10px; 
-    margin-top: 10px; 
-  }
-  button { 
-    width: 100%; 
-    background: #007bff; 
-    color: white; 
-    font-size: 1rem; 
-    cursor: pointer; 
-    margin-top: 15px; 
-    padding: 10px; 
-  }
+  .totals, .cash-section { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+  button { width: 100%; background: #007bff; color: white; font-size: 1rem; cursor: pointer; margin-top: 15px; padding: 10px; }
   button:hover { background: #0056b3; }
-  #receiptNo { display: none; } /* hide receipt field */
+  #receiptNo, #receiptPreview { display: none; }
+  #receiptPreview { max-width: 800px; margin: 15px auto; font-family: monospace; background:#fff; padding:10px; border-radius:6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+  #receiptPreview h3,h4 { text-align:center; margin:2px; }
+  .line { border-bottom:1px dashed #000; margin:5px 0; }
+  .row { display:flex; justify-content:space-between; }
 </style>
 </head>
 <body>
 
-<h2>Booking Entry</h2>
+<h2>Walk-In Entry</h2>
 
 <form id="bookingForm">
   <label for="qrInput">Scan/Paste QR Code (optional):</label>
@@ -120,6 +77,7 @@
         </div>
       </div>
 
+      <!-- Hidden Receipt No -->
       <input type="text" id="receiptNo" class="readonly-field" readonly>
     </div>
   </div>
@@ -148,13 +106,17 @@
 
 <div id="output" style="max-width:800px;margin:15px auto;font-size:14px;"></div>
 
+<!-- Receipt preview -->
+<div id="receiptPreview"></div>
+
 <script src="rate.js"></script>
+<script src="Co.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="fire1.js"></script>
-<script src="Co.js"></script> <!-- Company info -->
 
 <script>
+// Fields
 const dateField = document.getElementById("date");
 const qrInput = document.getElementById("qrInput");
 const nameField = document.getElementById("name");
@@ -174,181 +136,142 @@ const totalKidsField = document.getElementById("totalKids");
 const gstField = document.getElementById("gstField");
 const totalField = document.getElementById("totalField");
 const outputDiv = document.getElementById("output");
+const receiptPreview = document.getElementById("receiptPreview");
 
+// Init
 dateField.value = new Date().toISOString().split('T')[0];
 cashFields.style.display = "none";
 
-// Toggle cash fields
-function toggleCashFields() {
-  if(paymentType.value==="Cash"){
-    cashFields.style.display = "grid";
+// QR Parser
+function parseQR(code){
+  code = code.trim().toUpperCase().replace(/\s+/g,' ');
+  const allParts = code.split(' ');
+  let name="", flightNo="", seatNo="";
+  if(code.startsWith("TKVCPO")){
+    const tkIndex = code.indexOf("TK0");
+    if(tkIndex!=-1){ flightNo=code.substring(tkIndex,tkIndex+6); name=code.substring(6,tkIndex);}
+    const mlePos = code.indexOf("MLE");
+    if(mlePos!=-1){ const afterMLE = code.substring(mlePos).split(' ')[0]; if(afterMLE.length>=11) seatNo=afterMLE.substring(8,11);}
   } else {
-    cashFields.style.display = "none";
-    givenAmount.value = "";
-    balanceField.value = "";
+    name = allParts[0].substring(2);
+    const mleIndex = allParts.findIndex(w=>w.includes("MLE"));
+    if(mleIndex!=-1){
+      const mleWord = allParts[mleIndex];
+      const nextWord = (mleIndex+1<allParts.length)?allParts[mleIndex+1]:"";
+      flightNo = mleWord.slice(-2)+nextWord;
+      const partsAfterMLE = allParts.slice(mleIndex+1);
+      for(let w of partsAfterMLE){
+        if(w.length>=9 && !w.includes("QR") && !w.includes("MLE")){ seatNo = w.substring(5,w.length-4); break; }
+      }
+    }
   }
+  return {name, flightNo, seatNo};
 }
+qrInput.addEventListener("change", ()=>{ const parsed = parseQR(qrInput.value); if(parsed.name) nameField.value=parsed.name; if(parsed.flightNo) flightField.value=parsed.flightNo; if(parsed.seatNo) seatField.value=parsed.seatNo; qrInput.value=''; });
 
 // Calculate totals
 function calculate(){
-  const curr = currencyType.value;
-  const rate = rateType.value;
-  const adults = parseInt(adultCount.value)||0;
-  const kids = parseInt(kidCount.value)||0;
-  const adultKey = `Adult${rate}${curr}`;
-  const kidKey = `Kids${rate}${curr}`;
-  const adultRate = rates[adultKey].price;
-  const kidRate = rates[kidKey].price;
-  const gstPercent = rates[adultKey].GST;
+  const curr = currencyType.value, rate = rateType.value;
+  const adults = parseInt(adultCount.value)||0, kids = parseInt(kidCount.value)||0;
+  const adultRate = rates[`Adult${rate}${curr}`].price;
+  const kidRate = rates[`Kids${rate}${curr}`].price;
+  const gstPercent = rates[`Adult${rate}${curr}`].GST;
   const totalAdults = adults*adultRate;
   const totalKids = kids*kidRate;
   const subtotal = totalAdults+totalKids;
   const gstAmount = subtotal*(gstPercent/100);
   const total = subtotal+gstAmount;
-
   totalAdultsField.value = totalAdults.toFixed(2);
   totalKidsField.value = totalKids.toFixed(2);
   gstField.value = gstAmount.toFixed(2);
   totalField.value = total.toFixed(2);
-
-  if(paymentType.value==="Cash"){
-    const given = parseFloat(givenAmount.value)||0;
-    balanceField.value = (given-total).toFixed(2);
-  } else balanceField.value = "";
-
-  return {subtotal, gstAmount, total};
+  if(paymentType.value==="Cash"){ balanceField.value = ((parseFloat(givenAmount.value)||0)-total).toFixed(2); } else { balanceField.value=""; }
+  return {subtotal,gstAmount,total};
 }
 
-// Event listeners
-paymentType.addEventListener("change", ()=>{
-  toggleCashFields();
-  calculate();
-});
-[currencyType, rateType, adultCount, kidCount, givenAmount].forEach(el=>{
-  el.addEventListener("input", calculate);
-  el.addEventListener("change", calculate);
-});
-window.addEventListener("DOMContentLoaded", ()=>{ toggleCashFields(); calculate(); });
+// Toggle Cash Fields
+function toggleCashFields(){ if(paymentType.value==="Cash"){ cashFields.style.display="grid"; } else { cashFields.style.display="none"; givenAmount.value=""; balanceField.value=""; } }
 
-// Get next receipt number
-async function getNextReceiptNo() {
+// Receipt Number Transaction
+async function getNextReceiptNo(){
   const counterRef = db.collection("counters").doc("receiptCounter");
-  try {
-    const nextReceiptNo = await db.runTransaction(async (transaction)=>{
-      const doc = await transaction.get(counterRef);
-      let current = doc.exists ? doc.data().current + 1 : 1;
-      if(doc.exists) transaction.update(counterRef, {current: current});
-      else transaction.set(counterRef, {current: current});
+  try{
+    const nextReceiptNo = await db.runTransaction(async t=>{
+      const doc = await t.get(counterRef);
+      let current = 0;
+      if(!doc.exists){ t.set(counterRef,{current:1}); current=1; } 
+      else { current = doc.data().current+1; t.update(counterRef,{current}); }
       return current;
     });
     return nextReceiptNo;
-  } catch(err){
-    console.error(err); return 1;
+  } catch(e){ console.error(e); return 1; }
+}
+
+// Print / Preview Receipt
+async function printReceipt(receiptNumber){
+  const snapshot = await db.collection("bookings").where("receiptNo","==",receiptNumber).limit(1).get();
+  if(snapshot.empty){ alert("Receipt not found"); return; }
+  const booking = snapshot.docs[0].data();
+  // Inline preview
+  receiptPreview.innerHTML = `
+    <h3>${companyName}</h3>
+    <h4>Booking Receipt</h4>
+    <div class="line"></div>
+    <p>Receipt No: ${booking.receiptNo}</p>
+    <p>Date: ${booking.date}</p>
+    <p>Name: ${booking.name}</p>
+    <p>Flight No: ${booking.flight}</p>
+    <p>Seat No: ${booking.seat}</p>
+    <div class="row"><span>Adults:</span><span>${booking.adults}</span></div>
+    <div class="row"><span>Kids:</span><span>${booking.kids}</span></div>
+    <div class="row"><span>GST:</span><span>${booking.gst.toFixed(2)}</span></div>
+    <div class="row"><strong>Total:</strong><strong>${booking.total.toFixed(2)} ${booking.currency}</strong></div>
+    <p>Payment Method: ${booking.paymentType}</p>
+    ${booking.paymentType==="Cash"?`<div class="row"><span>Given:</span><span>${booking.givenAmount.toFixed(2)}</span></div><div class="row"><span>Balance:</span><span>${booking.balance.toFixed(2)}</span></div>`:''}
+    <div class="line"></div>
+    <p style="text-align:center;">Valid for 3 hours</p>
+  `;
+  receiptPreview.style.display="block";
+
+  // Print popup
+  let copies = parseInt(prompt("How many receipts to print?","1")); if(isNaN(copies)||copies<1) copies=1;
+  for(let i=0;i<copies;i++){
+    const win = window.open('','','height=600,width=400');
+    win.document.write(receiptPreview.innerHTML);
+    win.document.close();
+    win.focus();
+    win.print();
+    win.close();
   }
 }
 
-// Print receipt (same design as Receipt Viewer)
-async function printReceipt(receiptNumber){
-  try {
-    const snapshot = await db.collection("bookings").where("receiptNo","==",receiptNumber).limit(1).get();
-    if(snapshot.empty){ alert("Receipt not found!"); return; }
-    const booking = snapshot.docs[0].data();
-    let copies = parseInt(prompt("How many receipts to print?", "1"));
-    if(isNaN(copies)||copies<1) copies=1;
+// Event listeners
+paymentType.addEventListener("change", ()=>{ toggleCashFields(); calculate(); });
+[currencyType,rateType,adultCount,kidCount,givenAmount].forEach(el=>{ el.addEventListener("input",calculate); el.addEventListener("change",calculate); });
+window.addEventListener("DOMContentLoaded",()=>{ toggleCashFields(); calculate(); });
 
-    for(let i=0;i<copies;i++){
-      const win = window.open('','PRINT','height=600,width=400');
-      win.document.write(`
-        <html>
-        <head>
-        <title>Receipt ${booking.receiptNo}</title>
-        <style>
-          body { font-family: monospace; font-size:12px; padding:5px; width:80mm; }
-          .company-header { text-align:center; font-weight:bold; font-size:14px; margin-bottom:4px; }
-          .company-info { text-align:center; font-size:11px; margin-bottom:4px; }
-          .line { border-bottom:1px dashed #000; margin:4px 0; }
-          .row { display:flex; justify-content:space-between; }
-          @media print { body { margin:0; } }
-        </style>
-        </head>
-        <body>
-          <div class="company-header">${company.name}</div>
-          <div class="company-info">${company.address}<br>${company.phone}</div>
-          <h3 style="text-align:center;">Receipt</h3>
-          <div class="line"></div>
-          <p>Receipt No: ${booking.receiptNo}</p>
-          <p>Date: ${booking.date || ''}</p>
-          <p>Name: ${booking.name || ''}</p>
-          <p>Flight No: ${booking.flight || ''}</p>
-          <p>Seat No: ${booking.seat || ''}</p>
-          <div class="row"><span>Adults:</span><span>${booking.adults??0}</span></div>
-          <div class="row"><span>Kids:</span><span>${booking.kids??0}</span></div>
-          <div class="row"><span>GST:</span><span>${(booking.gst??0).toFixed(2)}</span></div>
-          <div class="row"><strong>Total:</strong><strong>${(booking.total??0).toFixed(2)} ${booking.currency||''}</strong></div>
-          <p>Payment Method: ${booking.paymentType||''}</p>
-          ${
-            booking.paymentType==='Cash'
-            ? `<div class="row"><span>Given:</span><span>${(booking.givenAmount??0).toFixed(2)}</span></div>
-               <div class="row"><span>Balance:</span><span>${(booking.balance??0).toFixed(2)}</span></div>`
-            : ''
-          }
-          <div class="line"></div>
-          <p style="text-align:center;">Valid for 3 hours only</p>
-        </body>
-        </html>
-      `);
-      win.document.close();
-      win.focus();
-      win.print();
-      win.close();
-    }
-
-  } catch(err){ console.error(err); alert("Error printing receipt: "+err.message); }
-}
-
-// Save booking
+// Save
 document.getElementById("saveBtn").addEventListener("click", async ()=>{
   const totals = calculate();
   const nextReceiptNo = await getNextReceiptNo();
   receiptNo.value = nextReceiptNo;
-
   const data = {
-    date: dateField.value,
-    qrCode: qrInput.value || null,
-    name: nameField.value,
-    flight: flightField.value,
-    seat: seatField.value,
-    currency: currencyType.value,
-    rate: rateType.value,
-    adults: parseInt(adultCount.value)||0,
-    kids: parseInt(kidCount.value)||0,
-    paymentType: paymentType.value,
-    givenAmount: paymentType.value==='Cash'?parseFloat(givenAmount.value)||0:null,
-    balance: paymentType.value==='Cash'?parseFloat(balanceField.value)||0:null,
-    receiptNo: nextReceiptNo,
-    totalAdults: parseFloat(totalAdultsField.value),
-    totalKids: parseFloat(totalKidsField.value),
-    gst: parseFloat(gstField.value),
-    total: parseFloat(totalField.value),
-    timestamp: new Date()
+    date: dateField.value, qrCode: qrInput.value||null, name:nameField.value, flight:flightField.value, seat:seatField.value,
+    currency: currencyType.value, rate:rateType.value, adults:parseInt(adultCount.value)||0, kids:parseInt(kidCount.value)||0,
+    paymentType: paymentType.value, givenAmount:paymentType.value==="Cash"?parseFloat(givenAmount.value)||0:null,
+    balance:paymentType.value==="Cash"?parseFloat(balanceField.value)||0:null, receiptNo:nextReceiptNo,
+    totalAdults:parseFloat(totalAdultsField.value), totalKids:parseFloat(totalKidsField.value),
+    gst:parseFloat(gstField.value), total:parseFloat(totalField.value), timestamp:new Date()
   };
-
-  try {
+  try{
     await db.collection("bookings").add(data);
-    outputDiv.innerHTML = `<p style="color:green;">Booking saved successfully! Receipt No: ${nextReceiptNo}</p>`;
+    outputDiv.innerHTML=`<p style="color:green;">Booking saved! Receipt No: ${nextReceiptNo}</p>`;
     document.getElementById("bookingForm").reset();
-    dateField.value = new Date().toISOString().split('T')[0];
-    toggleCashFields();
-    calculate();
-
-    if(confirm("Do you want to print the receipt?")){
-      printReceipt(nextReceiptNo);
-    }
-  } catch(err){
-    console.error(err);
-    outputDiv.innerHTML = `<p style="color:red;">Error saving booking: ${err.message}</p>`;
-  }
+    dateField.value = new Date().toISOString().split('T')[0]; toggleCashFields(); calculate();
+    if(confirm("Print receipt?")) printReceipt(nextReceiptNo);
+  } catch(err){ console.error(err); outputDiv.innerHTML=`<p style="color:red;">Error: ${err.message}</p>`; }
 });
 </script>
+
 </body>
 </html>
