@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Receipt</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+    padding: 20px;
+  }
+  #receiptContainer {
+    width: 320px; /* typical receipt width */
+    margin: auto;
+    background: #fff;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  .company-header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+  }
+  .company-header h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+  .company-header p {
+    margin: 2px 0;
+    font-size: 12px;
+  }
+  .section {
+    margin-bottom: 10px;
+  }
+  .section h3 {
+    font-size: 14px;
+    margin: 6px 0;
+    border-bottom: 1px dashed #999;
+    padding-bottom: 2px;
+  }
+  .details p {
+    margin: 3px 0;
+    font-size: 12px;
+  }
+  table {
+    width: 100%;
+    font-size: 12px;
+    margin-top: 8px;
+    border-collapse: collapse;
+  }
+  th, td {
+    padding: 4px;
+    border-bottom: 1px dashed #ccc;
+    text-align: left;
+  }
+  .total-line {
+    font-weight: bold;
+    border-top: 2px solid #000;
+    margin-top: 6px;
+    padding-top: 6px;
+  }
+  .footer {
+    text-align: center;
+    margin-top: 15px;
+    font-size: 11px;
+    border-top: 1px dashed #ccc;
+    padding-top: 5px;
+  }
+  @media print {
+    body { background: #fff; padding: 0; }
+    #receiptContainer { border: none; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="receiptContainer">
+  <div class="company-header">
+    <h2 id="compName"></h2>
+    <p id="compAddr"></p>
+    <p id="compPhone"></p>
+  </div>
+
+  <div class="section details">
+    <h3>Receipt Info</h3>
+    <p><strong>Receipt No:</strong> <span id="receiptNo"></span></p>
+    <p><strong>Date:</strong> <span id="receiptDate"></span></p>
+    <p><strong>Name:</strong> <span id="custName"></span></p>
+    <p><strong>Flight No:</strong> <span id="flightNo"></span></p>
+    <p><strong>Seat:</strong> <span id="seat"></span></p>
+  </div>
+
+  <div class="section">
+    <h3>Charges</h3>
+    <table id="itemsTable">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th style="text-align:right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p class="total-line">Total: <span id="totalAmount"></span></p>
+    <p><strong>Payment:</strong> <span id="paymentType"></span></p>
+    <p><strong>Currency:</strong> <span id="currency"></span></p>
+  </div>
+
+  <div class="footer">
+    Thank you for your business!<br>
+    This is a computer-generated receipt.
+  </div>
+</div>
+
+<script src="Co.js"></script>
+<script>
+// Load company info
+document.getElementById("compName").innerText = companyInfo.name;
+document.getElementById("compAddr").innerText = companyInfo.address;
+document.getElementById("compPhone").innerText = companyInfo.phone;
+
+// Example (replace with real Firebase data)
+const receiptData = {
+  receiptNo: "RC-1005",
+  date: new Date().toLocaleDateString(),
+  name: "John Doe",
+  flightNo: "QR 675",
+  seat: "12A",
+  items: [
+    { desc: "Lounge Access", amount: 50 },
+    { desc: "Meal", amount: 20 }
+  ],
+  total: 70,
+  paymentType: "Cash",
+  currency: "USD"
+};
+
+// Populate receipt
+document.getElementById("receiptNo").innerText = receiptData.receiptNo;
+document.getElementById("receiptDate").innerText = receiptData.date;
+document.getElementById("custName").innerText = receiptData.name;
+document.getElementById("flightNo").innerText = receiptData.flightNo;
+document.getElementById("seat").innerText = receiptData.seat;
+document.getElementById("paymentType").innerText = receiptData.paymentType;
+document.getElementById("currency").innerText = receiptData.currency;
+document.getElementById("totalAmount").innerText = receiptData.total + " " + receiptData.currency;
+
+const tbody = document.querySelector("#itemsTable tbody");
+receiptData.items.forEach(it => {
+  let row = document.createElement("tr");
+  row.innerHTML = `<td>${it.desc}</td><td style="text-align:right;">${it.amount.toFixed(2)}</td>`;
+  tbody.appendChild(row);
+});
+</script>
+
+</body>
+</html>
