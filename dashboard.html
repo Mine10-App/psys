@@ -64,7 +64,7 @@
   <button id="newBookingBtn">New Booking</button>
   <button id="printReceiptBtn">Print Receipt</button>
   <button id="dailyReportBtn">Daily Report</button>
-  <button id="editBookingBtn">Edit / Delete Booking</button>
+  <button id="editBookingBtn">Edit / Void / Delete Booking</button>
   <button id="voidPaymentBtn">Void Payment</button>
   <button id="logoutBtn" style="background:red;">Logout</button>
 </main>
@@ -90,14 +90,12 @@ document.getElementById("printReceiptBtn").addEventListener("click", ()=>{
   window.location.href = "receipt.html";
 });
 document.getElementById("dailyReportBtn").addEventListener("click", ()=>{
-  window.location.href = "daily_report.html";
+  window.location.href = "DReport.html";
 });
 document.getElementById("editBookingBtn").addEventListener("click", ()=>{
   window.location.href = "edit_booking.html";
 });
-document.getElementById("voidPaymentBtn").addEventListener("click", ()=>{
-  window.location.href = "void_payment.html";
-});
+
 document.getElementById("logoutBtn").addEventListener("click", ()=>{
   sessionStorage.clear();
   window.location.href = "index.html";
