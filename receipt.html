@@ -4,66 +4,27 @@
 <meta charset="UTF-8">
 <title>Receipt Viewer</title>
 <style>
-  body {
-    font-family: monospace;
-    font-size: 12px;
-    width: 80mm;   /* thermal printer width */
-    padding: 5px;
-    margin: 0 auto;
-    background: #f4f6f9;
-  }
-  h2, h3 {
-    text-align: center;
-    margin: 2px 0;
-  }
-  .company-header {
-    text-align: center;
-    font-weight: bold;
-    font-size: 14px;
-    margin-bottom: 4px;
-  }
-  .company-info {
-    text-align: center;
-    font-size: 11px;
-    margin-bottom: 4px;
-  }
-  .line {
-    border-bottom: 1px dashed #000;
-    margin: 4px 0;
-  }
-  .row {
-    display: flex;
-    justify-content: space-between;
-  }
-  #receiptBox {
-    background: #fff;
-    padding: 8px;
-    border-radius: 6px;
-    margin-top: 10px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  }
-  @media print {
-    #searchBox, button { display: none; }
-    body { background: #fff; margin: 0; }
-  }
+  body { font-family: monospace; background: #f4f6f9; padding: 10px; }
+  #receiptBox { max-width:400px; margin:auto; background:#fff; padding:10px; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.1); display:none; }
+  h2,h3 { text-align:center; margin:2px; }
+  .line { border-bottom:1px dashed #000; margin:5px 0; }
+  .row { display:flex; justify-content:space-between; }
+  #searchBox { text-align:center; margin-bottom:15px; }
+  input { padding:5px; width:60%; }
+  button { padding:5px; }
 </style>
 </head>
 <body>
 
-<h2>Booking Receipt</h2>
+<h2 id="companyName"></h2>
 
-<!-- Search Box -->
 <div id="searchBox">
-  <input type="number" id="searchReceipt" placeholder="Enter Receipt No" style="width:60%;padding:5px;">
+  <input type="number" id="searchReceipt" placeholder="Enter Receipt No">
   <button onclick="searchReceipt()">Search</button>
 </div>
 
-<!-- Receipt Box -->
-<div id="receiptBox" style="display:none;">
-  <!-- Company Header -->
-  <div class="company-header" id="companyName">My Company Name</div>
-  <div class="company-info" id="companyInfo">123 Main Street, City<br>+1234567890</div>
-  <h3>Receipt</h3>
+<div id="receiptBox">
+  <h3>Booking Receipt</h3>
   <div class="line"></div>
   <p>Receipt No: <span id="rNo"></span></p>
   <p>Date: <span id="rDate"></span></p>
@@ -78,74 +39,44 @@
   <div id="cashInfo"></div>
   <div class="line"></div>
   <p style="text-align:center;">Valid for 3 hours only</p>
-
-  <button onclick="window.print()" style="width:100%;margin-top:8px;padding:8px;">Print Receipt</button>
+  <button onclick="window.print()" style="width:100%; margin-top:8px; padding:8px;">Print Receipt</button>
 </div>
 
-<!-- Firebase -->
+<script src="Co.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="fire1.js"></script>
 
 <script>
-// Company info
-const companyInfo = {
-  name: "My Company Name",
-  address: "123 Main Street, City",
-  phone: "+1234567890"
-};
+// Company
+document.getElementById("companyName").textContent = companyName || "My Company";
 
-// Fill receipt UI
 function renderReceipt(data){
-  document.getElementById("receiptBox").style.display = "block";
-  document.getElementById("companyName").textContent = companyInfo.name;
-  document.getElementById("companyInfo").innerHTML = companyInfo.address + "<br>" + companyInfo.phone;
-
+  document.getElementById("receiptBox").style.display="block";
   document.getElementById("rNo").textContent = data.receiptNo || "";
   document.getElementById("rDate").textContent = data.date || "";
   document.getElementById("rName").textContent = data.name || "";
   document.getElementById("rFlight").textContent = data.flight || "";
   document.getElementById("rSeat").textContent = data.seat || "";
-  document.getElementById("rAdults").textContent = data.adults ?? 0;
-  document.getElementById("rKids").textContent = data.kids ?? 0;
-  document.getElementById("rGST").textContent = (data.gst ?? 0).toFixed(2);
-  document.getElementById("rTotal").textContent = (data.total ?? 0).toFixed(2) + " " + (data.currency || "");
-  document.getElementById("rPayment").textContent = data.paymentType || "";
-
-  if(data.paymentType === "Cash"){
-    document.getElementById("cashInfo").innerHTML =
-      `<div class="row"><span>Given:</span><span>${(data.givenAmount ?? 0).toFixed(2)}</span></div>
-       <div class="row"><span>Balance:</span><span>${(data.balance ?? 0).toFixed(2)}</span></div>`;
-  } else {
-    document.getElementById("cashInfo").innerHTML = "";
-  }
+  document.getElementById("rAdults").textContent = data.adults??0;
+  document.getElementById("rKids").textContent = data.kids??0;
+  document.getElementById("rGST").textContent = (data.gst??0).toFixed(2);
+  document.getElementById("rTotal").textContent = (data.total??0).toFixed(2) + " " + (data.currency||"");
+  document.getElementById("rPayment").textContent = data.paymentType||"";
+  if(data.paymentType==="Cash"){
+    document.getElementById("cashInfo").innerHTML = `<div class="row"><span>Given:</span><span>${(data.givenAmount??0).toFixed(2)}</span></div><div class="row"><span>Balance:</span><span>${(data.balance??0).toFixed(2)}</span></div>`;
+  } else { document.getElementById("cashInfo").innerHTML=""; }
 }
 
-// Search receipt by number
 async function searchReceipt(){
   const receiptNo = parseInt(document.getElementById("searchReceipt").value);
-  if(!receiptNo){ alert("Enter a valid receipt number"); return; }
-
-  try {
-    const snapshot = await db.collection("bookings")
-      .where("receiptNo", "==", receiptNo)
-      .limit(1)
-      .get();
-
-    if(snapshot.empty){
-      alert("No receipt found!");
-      return;
-    }
-
-    const data = snapshot.docs[0].data();
-    renderReceipt(data);
-
-  } catch(err){
-    console.error("Error fetching receipt:", err);
-    alert("Error fetching receipt: " + err.message);
-  }
+  if(!receiptNo){ alert("Enter receipt number"); return; }
+  try{
+    const snapshot = await db.collection("bookings").where("receiptNo","==",receiptNo).limit(1).get();
+    if(snapshot.empty){ alert("Receipt not found"); return; }
+    renderReceipt(snapshot.docs[0].data());
+  } catch(err){ console.error(err); alert("Error fetching receipt: "+err.message); }
 }
 </script>
-
 </body>
 </html>
