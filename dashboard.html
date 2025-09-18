@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Booking Dashboard</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f9;
+    margin: 0;
+    padding: 0;
+  }
+  header {
+    background: #007bff;
+    color: white;
+    padding: 20px;
+    text-align: center;
+    font-size: 1.5rem;
+  }
+  main {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    padding: 40px;
+    max-width: 1000px;
+    margin: auto;
+  }
+  button {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 20px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: 0.2s;
+    width: 100%;
+  }
+  button:hover {
+    background: #0056b3;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  }
+  footer {
+    text-align: center;
+    padding: 15px;
+    background: #e9ecef;
+    margin-top: 40px;
+    font-size: 0.9rem;
+  }
+  #welcome {
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>Walkin System Dashboard</header>
+<div id="welcome"></div>
+
+<main>
+  <button id="newBookingBtn">New Booking</button>
+  <button id="printReceiptBtn">Print Receipt</button>
+  <button id="dailyReportBtn">Daily Report</button>
+  <button id="editBookingBtn">Edit / Delete Booking</button>
+  <button id="voidPaymentBtn">Void Payment</button>
+  <button id="logoutBtn" style="background:red;">Logout</button>
+</main>
+
+<footer>&copy; 2025 Booking System</footer>
+
+<script>
+const welcomeDiv = document.getElementById("welcome");
+
+// Check if user is logged in
+const name = sessionStorage.getItem("name");
+if(!name){
+  window.location.href = "index.html";
+} else {
+  welcomeDiv.textContent = `Welcome, ${name}`;
+}
+
+// Button redirects
+document.getElementById("newBookingBtn").addEventListener("click", ()=>{
+  window.location.href = "card.html";
+});
+document.getElementById("printReceiptBtn").addEventListener("click", ()=>{
+  window.location.href = "receipt.html";
+});
+document.getElementById("dailyReportBtn").addEventListener("click", ()=>{
+  window.location.href = "daily_report.html";
+});
+document.getElementById("editBookingBtn").addEventListener("click", ()=>{
+  window.location.href = "edit_booking.html";
+});
+document.getElementById("voidPaymentBtn").addEventListener("click", ()=>{
+  window.location.href = "void_payment.html";
+});
+document.getElementById("logoutBtn").addEventListener("click", ()=>{
+  sessionStorage.clear();
+  window.location.href = "index.html";
+});
+</script>
+
+</body>
+</html>
