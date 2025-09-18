@@ -45,7 +45,7 @@
     font-weight: bold;
   }
   button {
-    margin-bottom: 20px;
+    margin: 10px 5px 20px 0;
     padding: 10px 15px;
     font-size: 1rem;
     cursor: pointer;
@@ -53,7 +53,7 @@
   @media print {
     body { background: #fff; }
     #reportContainer { box-shadow: none; margin: 0; width: auto; min-height: auto; }
-    button { display: none; }
+    button, label, input { display: none; }
   }
 </style>
 </head>
@@ -64,6 +64,7 @@
 <label for="reportDate">Select Date:</label>
 <input type="date" id="reportDate">
 <button id="generateBtn">Generate Report</button>
+<button onclick="printReport()">Print Report</button>
 
 <div id="reportContainer" style="display:none;">
   <h2 id="reportTitle"></h2>
@@ -127,8 +128,8 @@ generateBtn.addEventListener("click", async () => {
       .where("timestamp", "<=", end)
       .get();
 
-    let totalByCurrency = {};
-    let totalByPayment = {};
+    let totalsCashByCurrency = {};
+    let totalsNonCashByType = {};
     receiptsTableBody.innerHTML = "";
     voidedTableBody.innerHTML = "";
 
@@ -157,23 +158,28 @@ generateBtn.addEventListener("click", async () => {
         `;
         receiptsTableBody.appendChild(tr);
 
-        // Totals by currency
-        if(!totalByCurrency[data.currency]) totalByCurrency[data.currency] = 0;
-        totalByCurrency[data.currency] += data.total;
-
-        // Totals by payment type
-        if(!totalByPayment[data.paymentType]) totalByPayment[data.paymentType] = 0;
-        totalByPayment[data.paymentType] += data.total;
+        // Totals: Cash → by currency, Non-Cash → by payment type
+        if(data.paymentType.toLowerCase() === "cash"){
+          if(!totalsCashByCurrency[data.currency]) totalsCashByCurrency[data.currency] = 0;
+          totalsCashByCurrency[data.currency] += data.total;
+        } else {
+          if(!totalsNonCashByType[data.paymentType]) totalsNonCashByType[data.paymentType] = 0;
+          totalsNonCashByType[data.paymentType] += data.total;
+        }
       }
     });
 
-    // Build summary (after receipts)
+    // Build summary
     summaryDiv.innerHTML = "<h3>Summary (Active Receipts Only)</h3>";
-    for(const curr in totalByCurrency){
-      summaryDiv.innerHTML += `<div>Total in ${curr}: ${totalByCurrency[curr].toFixed(2)}</div>`;
+
+    // Show totals for Cash (grouped by currency)
+    for(const curr in totalsCashByCurrency){
+      summaryDiv.innerHTML += `<div>Total Cash in ${curr}: ${totalsCashByCurrency[curr].toFixed(2)}</div>`;
     }
-    for(const pay in totalByPayment){
-      summaryDiv.innerHTML += `<div>Total by ${pay}: ${totalByPayment[pay].toFixed(2)}</div>`;
+
+    // Show totals for Non-Cash (grouped by payment type)
+    for(const pay in totalsNonCashByType){
+      summaryDiv.innerHTML += `<div>Total by ${pay}: ${totalsNonCashByType[pay].toFixed(2)}</div>`;
     }
 
   } catch(err){
@@ -181,6 +187,10 @@ generateBtn.addEventListener("click", async () => {
     alert("Error generating report: "+err.message);
   }
 });
+
+function printReport(){
+  window.print();
+}
 </script>
 
 </body>
