@@ -302,25 +302,32 @@ async function printReceipt(receiptNumber) {
           <head>
             <title>Receipt ${booking.receiptNo}</title>
             <style>
-              body { font-family: monospace; font-size: 12px; padding: 5px; }
+              body { font-family: monospace; font-size: 12px; padding: 5px; width: 80mm; }
               h3, h4 { text-align: center; margin: 2px; }
               .line { border-bottom: 1px dashed #000; margin: 5px 0; }
+              @media print {
+                body { margin: 0; }
+              }
             </style>
           </head>
           <body>
             <h3>Booking Receipt</h3>
             <h4>Receipt No: ${booking.receiptNo}</h4>
             <div class="line"></div>
-            <p>Date: ${booking.date}</p>
-            <p>Name: ${booking.name}</p>
-            <p>Flight No: ${booking.flight}</p>
-            <p>Seat No: ${booking.seat}</p>
-            <p>Adults: ${booking.adults}</p>
-            <p>Kids: ${booking.kids}</p>
-            <p>GST: ${booking.gst.toFixed(2)}</p>
-            <p>Total: ${booking.total.toFixed(2)} ${booking.currency}</p>
-            <p>Payment Method: ${booking.paymentType}</p>
-            <p>${booking.paymentType === 'Cash' ? `Given Amount: ${booking.givenAmount}<br>Balance: ${booking.balance}` : ''}</p>
+            <p>Date: ${booking.date || ''}</p>
+            <p>Name: ${booking.name || ''}</p>
+            <p>Flight No: ${booking.flight || ''}</p>
+            <p>Seat No: ${booking.seat || ''}</p>
+            <p>Adults: ${booking.adults ?? 0}</p>
+            <p>Kids: ${booking.kids ?? 0}</p>
+            <p>GST: ${(booking.gst ?? 0).toFixed(2)}</p>
+            <p>Total: ${(booking.total ?? 0).toFixed(2)} ${booking.currency || ''}</p>
+            <p>Payment Method: ${booking.paymentType || ''}</p>
+            <p>${
+              booking.paymentType === 'Cash' 
+                ? `Given Amount: ${(booking.givenAmount ?? 0).toFixed(2)}<br>Balance: ${(booking.balance ?? 0).toFixed(2)}`
+                : ''
+            }</p>
             <div class="line"></div>
             <p style="text-align:center;">This package is valid for 3 hours</p>
           </body>
