@@ -1,34 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cash Receipt</title>
 <style>
-  body { font-family: monospace; background: #f4f6f9; padding: 20px; }
-  #receiptContainer { 
-    width: 300px; /* typical thermal receipt width */
-    margin: auto;
-    background: #fff; 
-    padding: 10px; 
-    border: 1px solid #000; 
+  body {
+    font-family: monospace;
+    font-size: 12px;
+    width: 80mm;   /* thermal paper width */
+    padding: 5px;
+    margin: 0;
   }
-  h2, h3 { text-align: center; margin: 5px 0; }
-  .line { border-top: 1px dashed #000; margin: 5px 0; }
-  .row { display: flex; justify-content: space-between; }
-  .message { text-align: center; margin-top: 10px; font-weight: bold; }
-  .void { color: red; font-weight: bold; text-align: center; font-size: 1.2em; margin: 10px 0; }
-  button { margin-top: 10px; width: 100%; padding: 8px; cursor: pointer; }
-  input { width: 100%; padding: 5px; margin-bottom: 10px; }
-
-  /* Print-specific styling */
+  h2, h3 {
+    text-align: center;
+    margin: 2px 0;
+  }
+  .line {
+    border-bottom: 1px dashed #000;
+    margin: 4px 0;
+  }
+  .row {
+    display: flex;
+    justify-content: space-between;
+  }
   @media print {
-    body {
-      background: #fff;
-      padding: 0;
-      margin: 0;
-    }
-    h2 { display: none; }         /* Hide page heading */
-    button, input { display: none !important; }  /* Hide UI */
-    #receiptContainer {
-      border: none;
-      width: 80mm;   /* matches your roll width */
-      margin: 0;
-      padding: 0;
-    }
+    body { margin: 0; }
+    button, input { display: none; }
   }
 </style>
+</head>
+<body>
+
+<h2>My Company Name</h2>
+<h3>Cash Receipt</h3>
+<p style="text-align:center;">Phone: +960 1234567</p>
+<div class="line"></div>
+
+<div id="receiptContent">
+  <p>Receipt No: <span id="rNo"></span></p>
+  <p>Date: <span id="rDate"></span></p>
+  <p>Name: <span id="rName"></span></p>
+  <p>Flight No: <span id="rFlight"></span></p>
+  <p>Seat No: <span id="rSeat"></span></p>
+  <div class="row"><span>Adults:</span><span id="rAdults"></span></div>
+  <div class="row"><span>Kids:</span><span id="rKids"></span></div>
+  <div class="row"><span>GST:</span><span id="rGST"></span></div>
+  <div class="row"><strong>Total:</strong><strong id="rTotal"></strong></div>
+  <p>Payment Method: <span id="rPayment"></span></p>
+  <div id="cashInfo"></div>
+  <div class="line"></div>
+  <p style="text-align:center;">Valid for 3 hours only</p>
+</div>
+
+<!-- Demo controls -->
+<div style="margin-top:10px;">
+  <button onclick="fillDemo()">Fill Demo Data</button>
+  <button onclick="window.print()">Print</button>
+</div>
+
+<script>
+function renderReceipt(data){
+  document.getElementById("rNo").textContent = data.receiptNo || "";
+  document.getElementById("rDate").textContent = data.date || "";
+  document.getElementById("rName").textContent = data.name || "";
+  document.getElementById("rFlight").textContent = data.flight || "";
+  document.getElementById("rSeat").textContent = data.seat || "";
+  document.getElementById("rAdults").textContent = data.adults ?? 0;
+  document.getElementById("rKids").textContent = data.kids ?? 0;
+  document.getElementById("rGST").textContent = (data.gst ?? 0).toFixed(2);
+  document.getElementById("rTotal").textContent = (data.total ?? 0).toFixed(2) + " " + (data.currency || "");
+  document.getElementById("rPayment").textContent = data.paymentType || "";
+  
+  if(data.paymentType==="Cash"){
+    document.getElementById("cashInfo").innerHTML =
+      `<div class="row"><span>Given:</span><span>${(data.givenAmount ?? 0).toFixed(2)}</span></div>
+       <div class="row"><span>Balance:</span><span>${(data.balance ?? 0).toFixed(2)}</span></div>`;
+  } else {
+    document.getElementById("cashInfo").innerHTML = "";
+  }
+}
+
+// demo filler
+function fillDemo(){
+  renderReceipt({
+    receiptNo: "R-1001",
+    date: new Date().toLocaleDateString(),
+    name: "John Doe",
+    flight: "TK1234",
+    seat: "12A",
+    adults: 2,
+    kids: 1,
+    gst: 25.50,
+    total: 200.50,
+    currency: "USD",
+    paymentType: "Cash",
+    givenAmount: 250,
+    balance: 49.50
+  });
+}
+</script>
+
+</body>
+</html>
