@@ -120,7 +120,6 @@
         </div>
       </div>
 
-      <!-- Hidden Receipt No -->
       <input type="text" id="receiptNo" class="readonly-field" readonly>
     </div>
   </div>
@@ -153,6 +152,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="fire1.js"></script>
+<script src="Co.js"></script> <!-- Company info -->
 
 <script>
 const dateField = document.getElementById("date");
@@ -176,43 +176,20 @@ const totalField = document.getElementById("totalField");
 const outputDiv = document.getElementById("output");
 
 dateField.value = new Date().toISOString().split('T')[0];
-cashFields.style.display = "none"; // hide cash fields initially
+cashFields.style.display = "none";
 
-// QR code parser
-function parseQR(code){
-  code = code.trim().toUpperCase().replace(/\s+/g,' ');
-  const allParts = code.split(' ');
-  let name="", flightNo="", seatNo="";
-  if(code.startsWith("TKVCPO")){
-    const tkIndex = code.indexOf("TK0");
-    if(tkIndex!=-1){ flightNo=code.substring(tkIndex,tkIndex+6); name=code.substring(6,tkIndex);}
-    const mlePos = code.indexOf("MLE");
-    if(mlePos!=-1){ const afterMLE = code.substring(mlePos).split(' ')[0]; if(afterMLE.length>=11) seatNo=afterMLE.substring(8,11);}
+// Toggle cash fields
+function toggleCashFields() {
+  if(paymentType.value==="Cash"){
+    cashFields.style.display = "grid";
   } else {
-    name = allParts[0].substring(2);
-    const mleIndex = allParts.findIndex(w=>w.includes("MLE"));
-    if(mleIndex!=-1){
-      const mleWord = allParts[mleIndex];
-      const nextWord = (mleIndex+1<allParts.length)?allParts[mleIndex+1]:"";
-      flightNo = mleWord.slice(-2)+nextWord;
-      const partsAfterMLE = allParts.slice(mleIndex+1);
-      for(let w of partsAfterMLE){
-        if(w.length>=9 && !w.includes("QR") && !w.includes("MLE")){ seatNo = w.substring(5,w.length-4); break; }
-      }
-    }
+    cashFields.style.display = "none";
+    givenAmount.value = "";
+    balanceField.value = "";
   }
-  return {name, flightNo, seatNo};
 }
 
-qrInput.addEventListener("change", ()=>{
-  const parsed = parseQR(qrInput.value);
-  if(parsed.name) nameField.value = parsed.name;
-  if(parsed.flightNo) flightField.value = parsed.flightNo;
-  if(parsed.seatNo) seatField.value = parsed.seatNo;
-  qrInput.value='';
-});
-
-// calculate totals and balance
+// Calculate totals
 function calculate(){
   const curr = currencyType.value;
   const rate = rateType.value;
@@ -237,130 +214,99 @@ function calculate(){
   if(paymentType.value==="Cash"){
     const given = parseFloat(givenAmount.value)||0;
     balanceField.value = (given-total).toFixed(2);
-  } else {
-    balanceField.value = "";
-  }
+  } else balanceField.value = "";
 
   return {subtotal, gstAmount, total};
 }
 
-// toggle cash fields
-function toggleCashFields() {
-  if(paymentType.value==="Cash"){
-    cashFields.style.display = "grid";
-  } else {
-    cashFields.style.display = "none";
-    givenAmount.value = "";
-    balanceField.value = "";
-  }
-}
+// Event listeners
+paymentType.addEventListener("change", ()=>{
+  toggleCashFields();
+  calculate();
+});
+[currencyType, rateType, adultCount, kidCount, givenAmount].forEach(el=>{
+  el.addEventListener("input", calculate);
+  el.addEventListener("change", calculate);
+});
+window.addEventListener("DOMContentLoaded", ()=>{ toggleCashFields(); calculate(); });
 
-// get next receipt number safely with transaction
+// Get next receipt number
 async function getNextReceiptNo() {
   const counterRef = db.collection("counters").doc("receiptCounter");
   try {
     const nextReceiptNo = await db.runTransaction(async (transaction)=>{
       const doc = await transaction.get(counterRef);
-      let current = 0;
-      if(!doc.exists){
-        transaction.set(counterRef, {current: 1});
-        current = 1;
-      } else {
-        current = doc.data().current + 1;
-        transaction.update(counterRef, {current: current});
-      }
+      let current = doc.exists ? doc.data().current + 1 : 1;
+      if(doc.exists) transaction.update(counterRef, {current: current});
+      else transaction.set(counterRef, {current: current});
       return current;
     });
     return nextReceiptNo;
   } catch(err){
-    console.error("Error getting next receipt number:", err);
-    return 1;
+    console.error(err); return 1;
   }
 }
 
-// Function to print receipt
-async function printReceipt(receiptNumber) {
+// Print receipt (same design as Receipt Viewer)
+async function printReceipt(receiptNumber){
   try {
-    const bookingQuery = await db.collection("bookings")
-      .where("receiptNo", "==", receiptNumber)
-      .limit(1)
-      .get();
-
-    if (bookingQuery.empty) {
-      alert("Receipt not found!");
-      return;
-    }
-
-    const booking = bookingQuery.docs[0].data();
+    const snapshot = await db.collection("bookings").where("receiptNo","==",receiptNumber).limit(1).get();
+    if(snapshot.empty){ alert("Receipt not found!"); return; }
+    const booking = snapshot.docs[0].data();
     let copies = parseInt(prompt("How many receipts to print?", "1"));
-    if (isNaN(copies) || copies < 1) copies = 1;
+    if(isNaN(copies)||copies<1) copies=1;
 
-    for (let i = 0; i < copies; i++) {
-      const receiptWindow = window.open('', 'PRINT', 'height=600,width=400');
-      receiptWindow.document.write(`
+    for(let i=0;i<copies;i++){
+      const win = window.open('','PRINT','height=600,width=400');
+      win.document.write(`
         <html>
-          <head>
-            <title>Receipt ${booking.receiptNo}</title>
-            <style>
-              body { font-family: monospace; font-size: 12px; padding: 5px; width: 80mm; }
-              h3, h4 { text-align: center; margin: 2px; }
-              .line { border-bottom: 1px dashed #000; margin: 5px 0; }
-              @media print {
-                body { margin: 0; }
-              }
-            </style>
-          </head>
-          <body>
-            <h3>Booking Receipt</h3>
-            <h4>Receipt No: ${booking.receiptNo}</h4>
-            <div class="line"></div>
-            <p>Date: ${booking.date || ''}</p>
-            <p>Name: ${booking.name || ''}</p>
-            <p>Flight No: ${booking.flight || ''}</p>
-            <p>Seat No: ${booking.seat || ''}</p>
-            <p>Adults: ${booking.adults ?? 0}</p>
-            <p>Kids: ${booking.kids ?? 0}</p>
-            <p>GST: ${(booking.gst ?? 0).toFixed(2)}</p>
-            <p>Total: ${(booking.total ?? 0).toFixed(2)} ${booking.currency || ''}</p>
-            <p>Payment Method: ${booking.paymentType || ''}</p>
-            <p>${
-              booking.paymentType === 'Cash' 
-                ? `Given Amount: ${(booking.givenAmount ?? 0).toFixed(2)}<br>Balance: ${(booking.balance ?? 0).toFixed(2)}`
-                : ''
-            }</p>
-            <div class="line"></div>
-            <p style="text-align:center;">This package is valid for 3 hours</p>
-          </body>
+        <head>
+        <title>Receipt ${booking.receiptNo}</title>
+        <style>
+          body { font-family: monospace; font-size:12px; padding:5px; width:80mm; }
+          .company-header { text-align:center; font-weight:bold; font-size:14px; margin-bottom:4px; }
+          .company-info { text-align:center; font-size:11px; margin-bottom:4px; }
+          .line { border-bottom:1px dashed #000; margin:4px 0; }
+          .row { display:flex; justify-content:space-between; }
+          @media print { body { margin:0; } }
+        </style>
+        </head>
+        <body>
+          <div class="company-header">${company.name}</div>
+          <div class="company-info">${company.address}<br>${company.phone}</div>
+          <h3 style="text-align:center;">Receipt</h3>
+          <div class="line"></div>
+          <p>Receipt No: ${booking.receiptNo}</p>
+          <p>Date: ${booking.date || ''}</p>
+          <p>Name: ${booking.name || ''}</p>
+          <p>Flight No: ${booking.flight || ''}</p>
+          <p>Seat No: ${booking.seat || ''}</p>
+          <div class="row"><span>Adults:</span><span>${booking.adults??0}</span></div>
+          <div class="row"><span>Kids:</span><span>${booking.kids??0}</span></div>
+          <div class="row"><span>GST:</span><span>${(booking.gst??0).toFixed(2)}</span></div>
+          <div class="row"><strong>Total:</strong><strong>${(booking.total??0).toFixed(2)} ${booking.currency||''}</strong></div>
+          <p>Payment Method: ${booking.paymentType||''}</p>
+          ${
+            booking.paymentType==='Cash'
+            ? `<div class="row"><span>Given:</span><span>${(booking.givenAmount??0).toFixed(2)}</span></div>
+               <div class="row"><span>Balance:</span><span>${(booking.balance??0).toFixed(2)}</span></div>`
+            : ''
+          }
+          <div class="line"></div>
+          <p style="text-align:center;">Valid for 3 hours only</p>
+        </body>
         </html>
       `);
-      receiptWindow.document.close();
-      receiptWindow.focus();
-      receiptWindow.print();
-      receiptWindow.close();
+      win.document.close();
+      win.focus();
+      win.print();
+      win.close();
     }
-  } catch (err) {
-    console.error("Error printing receipt:", err);
-    alert("Error printing receipt: " + err.message);
-  }
+
+  } catch(err){ console.error(err); alert("Error printing receipt: "+err.message); }
 }
 
-// event listeners
-paymentType.addEventListener("change", ()=>{
-  toggleCashFields();
-  calculate();
-});
-
-[currencyType, rateType, adultCount, kidCount, givenAmount].forEach(el=>{
-  el.addEventListener("input", calculate);
-  el.addEventListener("change", calculate);
-});
-
-window.addEventListener("DOMContentLoaded", ()=>{
-  toggleCashFields();
-  calculate();
-});
-
-// Save to Firebase and print
+// Save booking
 document.getElementById("saveBtn").addEventListener("click", async ()=>{
   const totals = calculate();
   const nextReceiptNo = await getNextReceiptNo();
@@ -374,11 +320,11 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
     seat: seatField.value,
     currency: currencyType.value,
     rate: rateType.value,
-    adults: parseInt(adultCount.value) || 0,
-    kids: parseInt(kidCount.value) || 0,
+    adults: parseInt(adultCount.value)||0,
+    kids: parseInt(kidCount.value)||0,
     paymentType: paymentType.value,
-    givenAmount: paymentType.value==="Cash"?parseFloat(givenAmount.value)||0:null,
-    balance: paymentType.value==="Cash"?parseFloat(balanceField.value)||0:null,
+    givenAmount: paymentType.value==='Cash'?parseFloat(givenAmount.value)||0:null,
+    balance: paymentType.value==='Cash'?parseFloat(balanceField.value)||0:null,
     receiptNo: nextReceiptNo,
     totalAdults: parseFloat(totalAdultsField.value),
     totalKids: parseFloat(totalKidsField.value),
@@ -398,9 +344,8 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
     if(confirm("Do you want to print the receipt?")){
       printReceipt(nextReceiptNo);
     }
-
   } catch(err){
-    console.error("Error saving booking:", err);
+    console.error(err);
     outputDiv.innerHTML = `<p style="color:red;">Error saving booking: ${err.message}</p>`;
   }
 });
