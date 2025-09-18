@@ -16,6 +16,17 @@
     text-align: center;
     margin: 2px 0;
   }
+  .company-header {
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .company-info {
+    text-align: center;
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
   .line {
     border-bottom: 1px dashed #000;
     margin: 4px 0;
@@ -49,6 +60,9 @@
 
 <!-- Receipt Box -->
 <div id="receiptBox" style="display:none;">
+  <!-- Company Header -->
+  <div class="company-header" id="companyName">My Company Name</div>
+  <div class="company-info" id="companyInfo">123 Main Street, City<br>+1234567890</div>
   <h3>Receipt</h3>
   <div class="line"></div>
   <p>Receipt No: <span id="rNo"></span></p>
@@ -74,9 +88,19 @@
 <script src="fire1.js"></script>
 
 <script>
+// Company info
+const companyInfo = {
+  name: "My Company Name",
+  address: "123 Main Street, City",
+  phone: "+1234567890"
+};
+
 // Fill receipt UI
 function renderReceipt(data){
   document.getElementById("receiptBox").style.display = "block";
+  document.getElementById("companyName").textContent = companyInfo.name;
+  document.getElementById("companyInfo").innerHTML = companyInfo.address + "<br>" + companyInfo.phone;
+
   document.getElementById("rNo").textContent = data.receiptNo || "";
   document.getElementById("rDate").textContent = data.date || "";
   document.getElementById("rName").textContent = data.name || "";
