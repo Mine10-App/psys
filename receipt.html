@@ -2,14 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Cash Receipt</title>
+<title>Receipt Viewer</title>
 <style>
   body {
     font-family: monospace;
     font-size: 12px;
-    width: 80mm;   /* thermal paper width */
+    width: 80mm;   /* thermal printer width */
     padding: 5px;
-    margin: 0;
+    margin: 0 auto;
+    background: #f4f6f9;
   }
   h2, h3 {
     text-align: center;
@@ -23,20 +24,33 @@
     display: flex;
     justify-content: space-between;
   }
+  #receiptBox {
+    background: #fff;
+    padding: 8px;
+    border-radius: 6px;
+    margin-top: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
   @media print {
-    body { margin: 0; }
-    button, input { display: none; }
+    #searchBox, button { display: none; }
+    body { background: #fff; margin: 0; }
   }
 </style>
 </head>
 <body>
 
-<h2>My Company Name</h2>
-<h3>Cash Receipt</h3>
-<p style="text-align:center;">Phone: +960 1234567</p>
-<div class="line"></div>
+<h2>Booking Receipt</h2>
 
-<div id="receiptContent">
+<!-- Search Box -->
+<div id="searchBox">
+  <input type="number" id="searchReceipt" placeholder="Enter Receipt No" style="width:60%;padding:5px;">
+  <button onclick="searchReceipt()">Search</button>
+</div>
+
+<!-- Receipt Box -->
+<div id="receiptBox" style="display:none;">
+  <h3>Receipt</h3>
+  <div class="line"></div>
   <p>Receipt No: <span id="rNo"></span></p>
   <p>Date: <span id="rDate"></span></p>
   <p>Name: <span id="rName"></span></p>
@@ -50,16 +64,19 @@
   <div id="cashInfo"></div>
   <div class="line"></div>
   <p style="text-align:center;">Valid for 3 hours only</p>
+
+  <button onclick="window.print()" style="width:100%;margin-top:8px;padding:8px;">Print Receipt</button>
 </div>
 
-<!-- Demo controls -->
-<div style="margin-top:10px;">
-  <button onclick="fillDemo()">Fill Demo Data</button>
-  <button onclick="window.print()">Print</button>
-</div>
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="fire1.js"></script>
 
 <script>
+// Fill receipt UI
 function renderReceipt(data){
+  document.getElementById("receiptBox").style.display = "block";
   document.getElementById("rNo").textContent = data.receiptNo || "";
   document.getElementById("rDate").textContent = data.date || "";
   document.getElementById("rName").textContent = data.name || "";
@@ -70,8 +87,8 @@ function renderReceipt(data){
   document.getElementById("rGST").textContent = (data.gst ?? 0).toFixed(2);
   document.getElementById("rTotal").textContent = (data.total ?? 0).toFixed(2) + " " + (data.currency || "");
   document.getElementById("rPayment").textContent = data.paymentType || "";
-  
-  if(data.paymentType==="Cash"){
+
+  if(data.paymentType === "Cash"){
     document.getElementById("cashInfo").innerHTML =
       `<div class="row"><span>Given:</span><span>${(data.givenAmount ?? 0).toFixed(2)}</span></div>
        <div class="row"><span>Balance:</span><span>${(data.balance ?? 0).toFixed(2)}</span></div>`;
@@ -80,23 +97,29 @@ function renderReceipt(data){
   }
 }
 
-// demo filler
-function fillDemo(){
-  renderReceipt({
-    receiptNo: "R-1001",
-    date: new Date().toLocaleDateString(),
-    name: "John Doe",
-    flight: "TK1234",
-    seat: "12A",
-    adults: 2,
-    kids: 1,
-    gst: 25.50,
-    total: 200.50,
-    currency: "USD",
-    paymentType: "Cash",
-    givenAmount: 250,
-    balance: 49.50
-  });
+// Search receipt by number
+async function searchReceipt(){
+  const receiptNo = parseInt(document.getElementById("searchReceipt").value);
+  if(!receiptNo){ alert("Enter a valid receipt number"); return; }
+
+  try {
+    const snapshot = await db.collection("bookings")
+      .where("receiptNo", "==", receiptNo)
+      .limit(1)
+      .get();
+
+    if(snapshot.empty){
+      alert("No receipt found!");
+      return;
+    }
+
+    const data = snapshot.docs[0].data();
+    renderReceipt(data);
+
+  } catch(err){
+    console.error("Error fetching receipt:", err);
+    alert("Error fetching receipt: " + err.message);
+  }
 }
 </script>
 
