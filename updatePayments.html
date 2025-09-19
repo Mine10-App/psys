@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Update Payments</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f4f6f9; margin:20px; }
+  h2 { text-align:center; margin-bottom:20px; }
+  table { width:100%; border-collapse:collapse; margin-bottom:20px; }
+  th, td { border:1px solid #ccc; padding:6px; font-size:13px; text-align:center; }
+  th { background:#eee; }
+  input, select { width:100%; padding:4px; font-size:13px; }
+  button { padding:6px 10px; margin:2px; font-size:13px; cursor:pointer; }
+  button.update { background:#007bff; color:white; border:none; border-radius:4px; }
+  button.update:hover { background:#0056b3; }
+  button.print { background:#28a745; color:white; border:none; border-radius:4px; }
+  button.print:hover { background:#1e7e34; }
+</style>
+</head>
+<body>
+
+<h2>Non-Cash Payments</h2>
+<table id="paymentsTable">
+  <thead>
+    <tr>
+      <th>Receipt No</th>
+      <th>Name</th>
+      <th>Flight</th>
+      <th>Total</th>
+      <th>Payment Type</th>
+      <th>Batch No</th>
+      <th>Approval Code</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="fire1.js"></script>
+
+<script>
+const tableBody = document.querySelector("#paymentsTable tbody");
+
+// Load non-cash payments
+async function loadPayments(){
+  tableBody.innerHTML = "<tr><td colspan='8'>Loading...</td></tr>";
+  const snapshot = await db.collection("bookings")
+    .where("paymentType","!=","Cash")
+    .orderBy("paymentType")
+    .get();
+
+  if(snapshot.empty){
+    tableBody.innerHTML = "<tr><td colspan='8'>No records found</td></tr>";
+    return;
+  }
+
+  tableBody.innerHTML = "";
+  snapshot.forEach(doc=>{
+    const data = doc.data();
+    const row = document.createElement("tr");
+
+    row.innerHTML = `
+      <td>${data.receiptNo}</td>
+      <td>${data.name}</td>
+      <td>${data.flight}</td>
+      <td>${data.total.toFixed(2)} ${data.currency}</td>
+      <td>
+        <select class="payType">
+          <option ${data.paymentType==="Card"?"selected":""}>Card</option>
+          <option ${data.paymentType==="Cash"?"selected":""}>Cash</option>
+        </select>
+      </td>
+      <td><input type="text" class="batchNo" value="${data.batchNo||""}"></td>
+      <td><input type="text" class="approvalCode" value="${data.approvalCode||""}"></td>
+      <td>
+        <button class="update">Update</button>
+        <button class="print">Print</button>
+      </td>
+    `;
+
+    // Update button
+    row.querySelector(".update").addEventListener("click", async ()=>{
+      const newPayType = row.querySelector(".payType").value;
+      const batchNo = row.querySelector(".batchNo").value;
+      const approvalCode = row.querySelector(".approvalCode").value;
+
+      await db.collection("bookings").doc(doc.id).update({
+        paymentType: newPayType,
+        batchNo: batchNo || null,
+        approvalCode: approvalCode || null
+      });
+      alert("Updated!");
+    });
+
+    // Print button
+    row.querySelector(".print").addEventListener("click", ()=>{
+      const updated = {
+        ...data,
+        paymentType: row.querySelector(".payType").value,
+        batchNo: row.querySelector(".batchNo").value,
+        approvalCode: row.querySelector(".approvalCode").value
+      };
+      printReceipt(updated);
+    });
+
+    tableBody.appendChild(row);
+  });
+}
+
+// Receipt printer
+function printReceipt(booking){
+  const htmlReceipt = `
+    <div class="receipt-box">
+      <h2>${companyInfo.name}</h2>
+      <p>${companyInfo.address}</p>
+      <p>${companyInfo.phone}</p>
+      <h3>Payment Receipt</h3>
+      <div class="receipt-line"></div>
+      <table style="width:100%; font-size:12px;">
+        <tr><td>Receipt No:</td><td style="text-align:right;">${booking.receiptNo}</td></tr>
+        <tr><td>Date:</td><td style="text-align:right;">${booking.date}</td></tr>
+        <tr><td>Name:</td><td style="text-align:right;">${booking.name}</td></tr>
+        <tr><td>Flight No:</td><td style="text-align:right;">${booking.flight}</td></tr>
+        <tr><td>Seat No:</td><td style="text-align:right;">${booking.seat}</td></tr>
+        <tr><td>Adults:</td><td style="text-align:right;">${booking.adults ?? 0}</td></tr>
+        <tr><td>Kids:</td><td style="text-align:right;">${booking.kids ?? 0}</td></tr>
+        <tr><td>GST:</td><td style="text-align:right;">${(booking.gst ?? 0).toFixed(2)}</td></tr>
+        <tr><td>Total:</td><td style="text-align:right;">${(booking.total ?? 0).toFixed(2)} ${booking.currency}</td></tr>
+        <tr><td>Payment:</td><td style="text-align:right;">${booking.paymentType}</td></tr>
+        ${booking.batchNo ? `<tr><td>Batch No:</td><td style="text-align:right;">${booking.batchNo}</td></tr>`:""}
+        ${booking.approvalCode ? `<tr><td>Approval:</td><td style="text-align:right;">${booking.approvalCode}</td></tr>`:""}
+      </table>
+      <div class="receipt-line"></div>
+      <p style="text-align:center;">This package is valid for 3 hours</p>
+    </div>
+  `;
+
+  const w = window.open('','PRINT','height=600,width=400');
+  w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${booking.receiptNo}</title>
+    <style>
+      body{font-family:monospace; font-size:12px; padding:5px; width:80mm;}
+      h2,h3,p{text-align:center; margin:2px;}
+      .receipt-line{border-bottom:1px dashed #000;margin:5px 0;}
+      table{width:100%; border-collapse:collapse;}
+      td{padding:2px 0;}
+      td:first-child{text-align:left;}
+      td:last-child{text-align:right;}
+      @media print{body{margin:0;}}
+    </style>
+    </head><body>${htmlReceipt}</body></html>`);
+  w.document.close();
+  w.focus();
+  w.print();
+  w.close();
+}
+
+loadPayments();
+</script>
+</body>
+</html>
