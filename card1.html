@@ -2,188 +2,171 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Booking Payment</title>
+<title>Payment Entry</title>
 <style>
   body {
     font-family: Arial, sans-serif;
-    background: #f4f6f9;
+    background: #f4f4f9;
     margin: 0;
     padding: 20px;
   }
+
   h2 {
     text-align: center;
-    color: #333;
     margin-bottom: 20px;
   }
+
   form {
-    max-width: 900px;
+    max-width: 700px;
     margin: auto;
     background: #fff;
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    font-size: 14px;
   }
-  label {
-    display: block;
-    font-weight: bold;
-    margin-top: 8px;
-    font-size: 13px;
-  }
-  input, select, button {
-    width: 100%;
-    padding: 6px;
-    margin-top: 4px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-    font-size: 13px;
-    text-transform: uppercase;
-  }
-  .section {
+
+  .form-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 20px;
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: center;
+  }
+
+  .form-row label {
+    width: 120px;
+    font-weight: bold;
+  }
+
+  .form-row input,
+  .form-row select {
+    flex: 1;
+    padding: 5px 8px;
+    font-size: 13px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .form-grid label {
+    font-style: italic;
+    font-size: 12px;
+  }
+
+  .totals-row {
+    display: flex;
+    gap: 10px;
     margin-top: 15px;
   }
-  .section > div {
-    flex: 1 1 200px;
-    min-width: 150px;
+
+  .totals-row input {
+    flex: 1;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
   }
-  .full-width {
-    flex: 1 1 100%;
-  }
+
   button {
+    display: block;
+    margin: 20px auto 0 auto;
+    padding: 10px 20px;
+    font-size: 14px;
     background: #007bff;
     color: #fff;
     border: none;
-    padding: 10px;
-    font-size: 1rem;
-    cursor: pointer;
     border-radius: 8px;
-    margin-top: 15px;
+    cursor: pointer;
   }
+
   button:hover {
     background: #0056b3;
-  }
-  #cashFields {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-  .readonly-field {
-    background: #f0f0f0;
-  }
-  .totals {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-top: 15px;
   }
 </style>
 </head>
 <body>
 
-<h2>Booking Payment</h2>
-<form id="bookingForm">
-  <!-- QR code -->
-  <div class="section full-width">
-    <div class="full-width">
-      <label for="qrInput">Scan/Paste QR Code (optional):</label>
-      <input type="text" id="qrInput" placeholder="Paste or scan QR code">
+<h2>Booking / Payment Entry</h2>
+
+<form id="paymentForm">
+  <!-- QR Code -->
+  <div class="form-row">
+    <label for="qrCode">QR Code:</label>
+    <input type="text" id="qrCode" placeholder="Scan or paste QR code">
+  </div>
+
+  <!-- Passenger Info -->
+  <div class="form-row">
+    <label for="date">Date:</label>
+    <input type="date" id="date">
+
+    <label for="name">Name:</label>
+    <input type="text" id="name">
+  </div>
+
+  <div class="form-row">
+    <label for="flight">Flight No:</label>
+    <input type="text" id="flight">
+
+    <label for="seat">Seat No:</label>
+    <input type="text" id="seat">
+  </div>
+
+  <!-- Payment Info -->
+  <div class="form-row">
+    <label for="paymentType">Payment Type:</label>
+    <select id="paymentType">
+      <option value="Card">Card</option>
+      <option value="Cash">Cash</option>
+    </select>
+
+    <label for="currency">Currency:</label>
+    <select id="currency">
+      <option value="USD">USD</option>
+      <option value="MVR">MVR</option>
+    </select>
+
+    <label for="rate">Rate:</label>
+    <select id="rate">
+      <option value="A">Rate A</option>
+      <option value="B">Rate B</option>
+    </select>
+  </div>
+
+  <!-- Passengers -->
+  <div class="form-row">
+    <label for="adultCount">No of Adults:</label>
+    <input type="number" id="adultCount" value="0" min="0">
+
+    <label for="kidCount">No of Kids:</label>
+    <input type="number" id="kidCount" value="0" min="0">
+
+    <label for="packageNo">Package:</label>
+    <input type="text" id="packageNo" value="1">
+  </div>
+
+  <!-- Totals -->
+  <div class="form-grid">
+    <div>
+      <label>Rate</label>
+      <input type="text" id="rateField" readonly>
+    </div>
+    <div>
+      <label>GST</label>
+      <input type="text" id="gstField" readonly>
+    </div>
+    <div>
+      <label>Total</label>
+      <input type="text" id="totalField" readonly>
     </div>
   </div>
 
-  <!-- Passenger Details -->
-  <div class="section">
-    <div>
-      <label>Date:</label>
-      <input type="date" id="date">
-    </div>
-    <div>
-      <label>Name:</label>
-      <input type="text" id="name">
-    </div>
-    <div>
-      <label>Flight No:</label>
-      <input type="text" id="flight">
-    </div>
-    <div>
-      <label>Seat No:</label>
-      <input type="text" id="seat">
-    </div>
-  </div>
-
-  <!-- Payment Details -->
-  <div class="section">
-    <div>
-      <label>Payment Type:</label>
-      <select id="paymentType">
-        <option value="Card" selected>Card</option>
-        <option value="Cash">Cash</option>
-      </select>
-    </div>
-    <div>
-      <label>Currency:</label>
-      <select id="currencyType">
-        <option value="USD">USD</option>
-        <option value="MVR">MVR</option>
-      </select>
-    </div>
-    <div>
-      <label>Rate:</label>
-      <select id="rateType">
-        <option value="A" selected>Rate A</option>
-        <option value="B">Rate B</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Passenger counts -->
-  <div class="section">
-    <div>
-      <label>Adults:</label>
-      <input type="number" id="adultCount" value="0" min="0">
-    </div>
-    <div>
-      <label>Kids:</label>
-      <input type="number" id="kidCount" value="0" min="0">
-    </div>
-  </div>
-
-  <!-- Totals & Cash -->
-  <div class="section">
-    <div class="totals">
-      <div>
-        <label>Total Adults:</label>
-        <input type="text" id="totalAdults" class="readonly-field" readonly>
-      </div>
-      <div>
-        <label>Total Kids:</label>
-        <input type="text" id="totalKids" class="readonly-field" readonly>
-      </div>
-      <div>
-        <label>GST:</label>
-        <input type="text" id="gstField" class="readonly-field" readonly>
-      </div>
-      <div>
-        <label>Total:</label>
-        <input type="text" id="totalField" class="readonly-field" readonly>
-      </div>
-    </div>
-  </div>
-
-  <div id="cashFields">
-    <div>
-      <label>Given Amount:</label>
-      <input type="number" id="givenAmount" min="0" step="0.01">
-    </div>
-    <div>
-      <label>Balance:</label>
-      <input type="text" id="balanceField" class="readonly-field" readonly>
-    </div>
-  </div>
-
-  <button type="button" id="saveBtn">Save & Go to Receipt</button>
+  <button type="button" id="saveBtn">Save</button>
 </form>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
