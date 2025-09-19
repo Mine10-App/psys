@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Shift Management</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f9;
+    padding: 30px;
+  }
+
+  h2 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+  }
+
+  .shift-container {
+    max-width: 500px;
+    margin: auto;
+    background: #fff;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+
+  .shift {
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+  }
+
+  .shift h3 {
+    margin-bottom: 15px;
+    color: #555;
+  }
+
+  .shift button {
+    padding: 10px 20px;
+    margin: 5px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .open-btn { background: #28a745; color: #fff; }
+  .close-btn { background: #dc3545; color: #fff; }
+  .disabled { background: #aaa; cursor: not-allowed; }
+
+  #superPassword {
+    display: none;
+    margin-top: 10px;
+  }
+
+  #superPassword input {
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+
+  #superPassword button {
+    background: #007bff;
+    color: #fff;
+    margin-left: 5px;
+  }
+
+</style>
+</head>
+<body>
+
+<h2>Shift Management</h2>
+
+<div class="shift-container">
+  <div class="shift" id="shift1">
+    <h3>Shift 1</h3>
+    <button id="openShift1" class="open-btn">Open</button>
+    <button id="closeShift1" class="close-btn">Close</button>
+  </div>
+
+  <div class="shift" id="shift2">
+    <h3>Shift 2</h3>
+    <button id="openShift2" class="open-btn">Open</button>
+    <button id="closeShift2" class="close-btn">Close</button>
+  </div>
+
+  <div id="superPassword">
+    <label>Supervisory Password:</label>
+    <input type="password" id="superPwd">
+    <button id="submitSuperPwd">Submit</button>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="fire1.js"></script> <!-- Your Firebase config -->
+
+<script>
+const db = firebase.firestore();
+
+// Supervisory password (for demo, in real app hash it or check server-side)
+const SUPERVISORY_PASSWORD = "super123";
+
+// Shift elements
+const openShift1Btn = document.getElementById("openShift1");
+const closeShift1Btn = document.getElementById("closeShift1");
+const openShift2Btn = document.getElementById("openShift2");
+const closeShift2Btn = document.getElementById("closeShift2");
+const superDiv = document.getElementById("superPassword");
+const superInput = document.getElementById("superPwd");
+const submitSuper = document.getElementById("submitSuperPwd");
+
+// Track which shift requires supervision to reopen
+let reopenShiftId = null;
+
+// Helper to update button states
+async function updateShiftStatus() {
+  const today = new Date().toISOString().split("T")[0];
+  const docRef = db.collection("shifts").doc(today);
+  const doc = await docRef.get();
+  const status = doc.exists ? doc.data() : { shift1: "closed", shift2: "closed" };
+
+  openShift1Btn.disabled = status.shift1 === "open";
+  closeShift1Btn.disabled = status.shift1 === "closed";
+  openShift2Btn.disabled = status.shift2 === "open" || status.shift1 !== "closed";
+  closeShift2Btn.disabled = status.shift2 === "closed";
+
+  if(status.shift1 === "closed" && status.shift2 === "closed") {
+    // no open shift
+    window.canOpenPayment = false;
+  } else {
+    window.canOpenPayment = true;
+  }
+}
+
+// Open shift
+async function openShift(shift) {
+  const today = new Date().toISOString().split("T")[0];
+  const docRef = db.collection("shifts").doc(today);
+  const doc = await docRef.get();
+  const data = doc.exists ? doc.data() : { shift1: "closed", shift2: "closed" };
+
+  if(data[shift] === "closed") {
+    await docRef.set({ ...data, [shift]: "open" });
+    updateShiftStatus();
+    alert(`${shift} opened`);
+  }
+}
+
+// Close shift
+async function closeShift(shift) {
+  const today = new Date().toISOString().split("T")[0];
+  const docRef = db.collection("shifts").doc(today);
+  const doc = await docRef.get();
+  const data = doc.exists ? doc.data() : { shift1: "closed", shift2: "closed" };
+
+  if(data[shift] === "open") {
+    await docRef.set({ ...data, [shift]: "closed" });
+    alert(`${shift} closed`);
+    updateShiftStatus();
+  }
+}
+
+// Reopen shift with supervisory password
+function requireSupervision(shift) {
+  reopenShiftId = shift;
+  superDiv.style.display = "block";
+}
+
+// Event listeners
+openShift1Btn.addEventListener("click", () => openShift("shift1"));
+closeShift1Btn.addEventListener("click", () => closeShift("shift1"));
+openShift2Btn.addEventListener("click", () => {
+  // Shift 1 must be closed before opening shift 2
+  db.collection("shifts").doc(new Date().toISOString().split("T")[0])
+    .get().then(doc => {
+      const data = doc.exists ? doc.data() : { shift1: "closed" };
+      if(data.shift1 === "closed") {
+        openShift("shift2");
+      } else {
+        alert("Close Shift 1 first to open Shift 2");
+      }
+    });
+});
+closeShift2Btn.addEventListener("click", () => closeShift("shift2"));
+
+// Supervisory password submit
+submitSuper.addEventListener("click", async () => {
+  if(superInput.value === SUPERVISORY_PASSWORD) {
+    await openShift(reopenShiftId);
+    superInput.value = "";
+    superDiv.style.display = "none";
+    reopenShiftId = null;
+  } else {
+    alert("Incorrect supervisory password");
+  }
+});
+
+// Initial load
+updateShiftStatus();
+</script>
+
+</body>
+</html>
