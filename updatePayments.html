@@ -150,11 +150,12 @@ async function loadPayments(){
 
 // Receipt printer formatted for 80x297 mm roll
 function printReceipt(booking) {
+  if (!booking) return;
   const htmlReceipt = `
     <div class="receipt-box">
-      <h2>${companyInfo.name}</h2>
-      <p>${companyInfo.address}</p>
-      <p>${companyInfo.phone}</p>
+      <h2>${companyInfo?.name || ""}</h2>
+      <p>${companyInfo?.address || ""}</p>
+      <p>${companyInfo?.phone || ""}</p>
       <h3>Payment Receipt</h3>
       <div class="receipt-line"></div>
       <table style="width:100%; font-size:12px;">
@@ -180,31 +181,35 @@ function printReceipt(booking) {
     </div>
   `;
 
-  const w = window.open('', 'PRINT', 'height=600,width=400');
-  w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${booking.receiptNo}</title>
-    <style>
-      body { font-family: monospace; font-size: 12px; padding:5px; width:80mm; margin:0; }
-      h2,h3,p { text-align:center; margin:2px; }
-      .receipt-line { border-bottom:1px dashed #000; margin:5px 0; }
-      table { width:100%; border-collapse:collapse; }
-      td { padding:2px 0; }
-      td:first-child { text-align:left; }
-      td:last-child { text-align:right; }
-      @media print { body { margin:0; } }
-    </style>
-  </head><body>${htmlReceipt}</body></html>`);
+  const printWindow = window.open('', '_blank', 'width=400,height=600');
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Receipt ${booking.receiptNo}</title>
+        <style>
+          body { font-family: monospace; font-size:12px; padding:5px; width:80mm; margin:0; }
+          h2,h3,p { text-align:center; margin:2px; }
+          .receipt-line { border-bottom:1px dashed #000; margin:5px 0; }
+          table { width:100%; border-collapse:collapse; }
+          td { padding:2px 0; }
+          td:first-child { text-align:left; }
+          td:last-child { text-align:right; }
+          @media print { body { margin:0; } }
+        </style>
+      </head>
+      <body>${htmlReceipt}</body>
+    </html>
+  `);
+  printWindow.document.close();
 
-  w.document.close();
-  w.focus();
-
-  // Some browsers need a delay for print to trigger
-  w.onload = () => {
-    w.print();
-    w.close();
+  // Ensure content is fully loaded before printing
+  printWindow.onload = function() {
+    printWindow.focus();
+    printWindow.print();
+    printWindow.close();
   };
-  setTimeout(() => { w.print(); w.close(); }, 300);
 }
-
 
 loadPayments();
 </script>
