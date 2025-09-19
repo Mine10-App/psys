@@ -14,8 +14,8 @@
     min-height: 297mm; /* A4 height */
     margin: auto;
     background: #fff;
-    padding: 20px;
-    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+    padding: 25px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
     page-break-after: always;
   }
   h1, h2, h3 { text-align: center; margin: 10px 0; }
@@ -23,10 +23,11 @@
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
+    font-size: 12px;
   }
   th, td {
     border: 1px solid #333;
-    padding: 8px;
+    padding: 6px;
     text-align: left;
   }
   th {
@@ -35,6 +36,7 @@
   }
   .summary {
     margin-top: 20px;
+    font-size: 13px;
   }
   .summary div {
     margin-bottom: 8px;
@@ -49,6 +51,14 @@
     padding: 10px 15px;
     font-size: 1rem;
     cursor: pointer;
+    border-radius: 6px;
+    border: 1px solid #007bff;
+    background: #007bff;
+    color: white;
+  }
+  button:hover {
+    background: #0056b3;
+    border-color: #0056b3;
   }
   @media print {
     body { background: #fff; }
@@ -59,7 +69,7 @@
 </head>
 <body>
 
-<h1>Daily Sales Report</h1>
+<h1 id="companyName">Company Name</h1>
 
 <label for="reportDate">Select Date:</label>
 <input type="date" id="reportDate">
@@ -74,9 +84,12 @@
     <thead>
       <tr>
         <th>Receipt No</th>
+        <th>Flight No</th>
         <th>Payment Type</th>
         <th>Currency</th>
         <th>Total Amount</th>
+        <th>Batch No</th>
+        <th>Approval Code</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -99,6 +112,10 @@
   <div class="summary" id="summaryDiv"></div>
 </div>
 
+<script src="Co.js"></script>
+<script>
+document.getElementById("companyName").innerText = companyInfo.name || "Company Name";
+</script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="fire1.js"></script>
@@ -137,28 +154,29 @@ generateBtn.addEventListener("click", async () => {
       const data = doc.data();
 
       if(data.voided){
-        // Voided receipts table
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${data.receiptNo}</td>
+          <td>-</td>
           <td>${data.paymentType}</td>
           <td>${data.currency}</td>
           <td>${data.total.toFixed(2)}</td>
         `;
         voidedTableBody.appendChild(tr);
       } else {
-        // Active receipts table
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${data.receiptNo}</td>
+          <td>${data.flight || '-'}</td>
           <td>${data.paymentType}</td>
           <td>${data.currency}</td>
           <td>${data.total.toFixed(2)}</td>
+          <td>${data.batchNo || '-'}</td>
+          <td>${data.approvalCode || '-'}</td>
           <td>Active</td>
         `;
         receiptsTableBody.appendChild(tr);
 
-        // Totals: Cash → by currency, Non-Cash → by payment type
         if(data.paymentType.toLowerCase() === "cash"){
           if(!totalsCashByCurrency[data.currency]) totalsCashByCurrency[data.currency] = 0;
           totalsCashByCurrency[data.currency] += data.total;
@@ -172,12 +190,9 @@ generateBtn.addEventListener("click", async () => {
     // Build summary
     summaryDiv.innerHTML = "<h3>Summary (Active Receipts Only)</h3>";
 
-    // Show totals for Cash (grouped by currency)
     for(const curr in totalsCashByCurrency){
       summaryDiv.innerHTML += `<div>Total Cash in ${curr}: ${totalsCashByCurrency[curr].toFixed(2)}</div>`;
     }
-
-    // Show totals for Non-Cash (grouped by payment type)
     for(const pay in totalsNonCashByType){
       summaryDiv.innerHTML += `<div>Total by ${pay}: ${totalsNonCashByType[pay].toFixed(2)}</div>`;
     }
@@ -192,6 +207,5 @@ function printReport(){
   window.print();
 }
 </script>
-
 </body>
 </html>
