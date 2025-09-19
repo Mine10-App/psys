@@ -64,19 +64,37 @@ const statusMessage = document.getElementById("statusMessage");
 
 let reopenShiftId = null;
 
-// Fetch today's shift status
+// Initialize today's shifts if not exist
+async function initShift() {
+  const today = new Date().toISOString().split("T")[0];
+  const docRef = db.collection("shifts").doc(today);
+  const doc = await docRef.get();
+  if(!doc.exists) {
+    await docRef.set({
+      shift1: "closed",
+      shift2: "closed",
+      shift1_reopened: false,
+      shift2_reopened: false
+    });
+  }
+}
+
+// Get today's shift status
 async function getShiftStatus() {
   const today = new Date().toISOString().split("T")[0];
   const doc = await db.collection("shifts").doc(today).get();
-  if(doc.exists) return doc.data();
-  return { shift1:"closed", shift2:"closed" };
+  if(!doc.exists) {
+    await initShift();
+    return { shift1:"closed", shift2:"closed", shift1_reopened:false, shift2_reopened:false };
+  }
+  return doc.data();
 }
 
-// Update buttons and status message based on rules
+// Update buttons and status message
 async function updateShiftStatus() {
   const status = await getShiftStatus();
 
-  // Initialize
+  // Reset all buttons
   openShift1Btn.disabled = true;
   closeShift1Btn.disabled = true;
   openShift2Btn.disabled = true;
@@ -84,22 +102,20 @@ async function updateShiftStatus() {
 
   let message = "No shift open";
 
-  // Rules:
-  if(status.shift1 === "closed" && status.shift2 === "closed") {
-    // Start of day: only open Shift1
+  if(status.shift1 === "closed" && status.shift2 === "closed" && !status.shift1_reopened) {
+    // Start of day: open shift 1
     openShift1Btn.disabled = false;
-  }
-  if(status.shift1 === "open") {
-    message = "Shift 1 is currently open";
+    message = "Start of day: open Shift 1";
+  } else if(status.shift1 === "open") {
     closeShift1Btn.disabled = false;
-  }
-  if(status.shift1 === "closed" && status.shift2 === "closed" && status.shift1_reopened) {
-    message = "Shift 1 closed. Open Shift 2 now";
+    message = "Shift 1 is currently open";
+  } else if(status.shift1 === "closed" && !status.shift2_reopened) {
+    // Shift1 closed → open shift2
     openShift2Btn.disabled = false;
-  }
-  if(status.shift2 === "open") {
-    message = "Shift 2 is currently open";
+    message = "Shift 1 closed. Open Shift 2 now";
+  } else if(status.shift2 === "open") {
     closeShift2Btn.disabled = false;
+    message = "Shift 2 is currently open";
   }
 
   statusMessage.textContent = message;
@@ -115,6 +131,7 @@ async function openShift(shift) {
   }
 
   if(status[shift] === "closed" && status[shift+"_reopened"]) {
+    // require supervisory password
     reopenShiftId = shift;
     superDiv.style.display = "block";
     return;
@@ -161,7 +178,7 @@ submitSuper.addEventListener("click", async ()=>{
 });
 
 // Initialize
-updateShiftStatus();
+initShift().then(updateShiftStatus);
 </script>
 
 </body>
