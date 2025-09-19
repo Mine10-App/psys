@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Payment Entry</title>
+<title>Booking / Payment Entry</title>
 <style>
   body {
     font-family: Arial, sans-serif;
@@ -14,78 +14,91 @@
   h2 {
     text-align: center;
     margin-bottom: 20px;
+    color: #333;
   }
 
   form {
-    max-width: 700px;
+    max-width: 750px;
     margin: auto;
     background: #fff;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    padding: 20px 25px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     font-size: 14px;
   }
 
-  .form-row {
+  .top-row, .form-row, .form-grid, .totals-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 12px;
+    gap: 15px;
+    margin-bottom: 15px;
     align-items: center;
   }
 
-  .form-row label {
+  .top-row label, .form-row label {
     width: 120px;
     font-weight: bold;
+    font-size: 13px;
   }
 
-  .form-row input,
-  .form-row select {
+  .top-row input, .form-row input, .form-row select {
     flex: 1;
-    padding: 5px 8px;
-    font-size: 13px;
-    border-radius: 5px;
+    padding: 6px 10px;
+    border-radius: 6px;
     border: 1px solid #ccc;
+    font-size: 13px;
+  }
+
+  .column-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .column-group label {
+    font-size: 12px;
+    margin-bottom: 4px;
+    font-style: italic;
   }
 
   .form-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
-    margin-bottom: 12px;
   }
 
-  .form-grid label {
-    font-style: italic;
-    font-size: 12px;
-  }
-
-  .totals-row {
-    display: flex;
-    gap: 10px;
-    margin-top: 15px;
-  }
-
-  .totals-row input {
-    flex: 1;
-    background: #f0f0f0;
+  .form-grid input {
+    padding: 5px;
+    border-radius: 5px;
     border: 1px solid #ccc;
+    background: #f9f9f9;
   }
 
   button {
     display: block;
-    margin: 20px auto 0 auto;
-    padding: 10px 20px;
-    font-size: 14px;
+    margin: 25px auto 0 auto;
+    padding: 12px 25px;
+    font-size: 15px;
     background: #007bff;
     color: #fff;
     border: none;
     border-radius: 8px;
     cursor: pointer;
+    transition: 0.2s;
   }
 
   button:hover {
     background: #0056b3;
+  }
+
+  /* Section headers */
+  .section-title {
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+    color: #555;
   }
 </style>
 </head>
@@ -94,63 +107,89 @@
 <h2>Booking / Payment Entry</h2>
 
 <form id="paymentForm">
+  <!-- Top Info -->
+  <div class="top-row">
+    <div class="column-group">
+      <label for="date">Date</label>
+      <input type="date" id="date">
+    </div>
+    <div class="column-group">
+      <label for="loginUser">Login User</label>
+      <input type="text" id="loginUser" readonly value="Abdulla">
+    </div>
+    <div class="column-group">
+      <label for="shift">Selected Shift</label>
+      <input type="text" id="shift" placeholder="Shift">
+    </div>
+  </div>
+
   <!-- QR Code -->
   <div class="form-row">
-    <label for="qrCode">QR Code:</label>
+    <label for="qrCode">QR Code</label>
     <input type="text" id="qrCode" placeholder="Scan or paste QR code">
   </div>
 
   <!-- Passenger Info -->
+  <div class="section-title">Passenger Info</div>
   <div class="form-row">
-    <label for="date">Date:</label>
-    <input type="date" id="date">
-
-    <label for="name">Name:</label>
-    <input type="text" id="name">
+    <div class="column-group">
+      <label for="name">Name</label>
+      <input type="text" id="name">
+    </div>
+    <div class="column-group">
+      <label for="flight">Flight No</label>
+      <input type="text" id="flight">
+    </div>
+    <div class="column-group">
+      <label for="seat">Seat No</label>
+      <input type="text" id="seat">
+    </div>
   </div>
 
+  <!-- Passenger Count -->
   <div class="form-row">
-    <label for="flight">Flight No:</label>
-    <input type="text" id="flight">
-
-    <label for="seat">Seat No:</label>
-    <input type="text" id="seat">
+    <div class="column-group">
+      <label for="adultCount">No of Adults</label>
+      <input type="number" id="adultCount" value="0" min="0">
+    </div>
+    <div class="column-group">
+      <label for="kidCount">No of Kids</label>
+      <input type="number" id="kidCount" value="0" min="0">
+    </div>
+    <div class="column-group">
+      <label for="packageNo">Package No</label>
+      <input type="text" id="packageNo" value="1">
+    </div>
   </div>
 
   <!-- Payment Info -->
+  <div class="section-title">Payment Info</div>
   <div class="form-row">
-    <label for="paymentType">Payment Type:</label>
-    <select id="paymentType">
-      <option value="Card">Card</option>
-      <option value="Cash">Cash</option>
-    </select>
-
-    <label for="currency">Currency:</label>
-    <select id="currency">
-      <option value="USD">USD</option>
-      <option value="MVR">MVR</option>
-    </select>
-
-    <label for="rate">Rate:</label>
-    <select id="rate">
-      <option value="A">Rate A</option>
-      <option value="B">Rate B</option>
-    </select>
-  </div>
-
-  <!-- Passengers -->
-  <div class="form-row">
-    <label for="adultCount">No of Adults:</label>
-    <input type="number" id="adultCount" value="0" min="0">
-
-    <label for="kidCount">No of Kids:</label>
-    <input type="number" id="kidCount" value="0" min="0">
-
-    <label for="packageNo">Package:</label>
-    <input type="text" id="packageNo" value="1">
+    <div class="column-group">
+      <label for="paymentType">Payment Type</label>
+      <select id="paymentType">
+        <option value="Card">Card</option>
+        <option value="Cash">Cash</option>
+      </select>
+    </div>
+    <div class="column-group">
+      <label for="currency">Currency</label>
+      <select id="currency">
+        <option value="USD">USD</option>
+        <option value="MVR">MVR</option>
+      </select>
+    </div>
+    <div class="column-group">
+      <label for="rate">Rate</label>
+      <select id="rate">
+        <option value="A">Rate A</option>
+        <option value="B">Rate B</option>
+      </select>
+    </div>
   </div>
 
   <!-- Totals -->
+  <div class="section-title">Totals</div>
   <div class="form-grid">
     <div>
       <label>Rate</label>
@@ -176,87 +215,57 @@
 <script src="Co.js"></script>
 <script>
   const dateField = document.getElementById("date");
-  const qrInput = document.getElementById("qrInput");
+  const qrInput = document.getElementById("qrCode");
   const nameField = document.getElementById("name");
   const flightField = document.getElementById("flight");
   const seatField = document.getElementById("seat");
-  const currencyType = document.getElementById("currencyType");
-  const rateType = document.getElementById("rateType");
+  const currencyType = document.getElementById("currency");
+  const rateType = document.getElementById("rate");
   const adultCount = document.getElementById("adultCount");
   const kidCount = document.getElementById("kidCount");
   const paymentType = document.getElementById("paymentType");
-  const givenAmount = document.getElementById("givenAmount");
-  const balanceField = document.getElementById("balanceField");
-  const cashFields = document.getElementById("cashFields");
-  const totalAdultsField = document.getElementById("totalAdults");
-  const totalKidsField = document.getElementById("totalKids");
+  const totalAdultsField = document.getElementById("rateField");
   const gstField = document.getElementById("gstField");
   const totalField = document.getElementById("totalField");
 
   // Set today's date
   dateField.value = new Date().toISOString().split('T')[0];
-  cashFields.style.display = "none";
 
   // Auto-uppercase for text inputs
   [nameField, flightField, seatField].forEach(input => {
     input.addEventListener("input", () => input.value = input.value.toUpperCase());
   });
 
-  // Toggle Cash Fields
-  function toggleCashFields() {
-    if(paymentType.value === "Cash"){
-      cashFields.style.display = "grid";
-    } else {
-      cashFields.style.display = "none";
-      givenAmount.value = "";
-      balanceField.value = "";
-    }
-  }
-
-  paymentType.addEventListener("change", toggleCashFields);
-
-  // Calculate totals (example using rates.js)
+  // Calculate totals
   function calculate() {
     const curr = currencyType.value;
     const rate = rateType.value;
     const adults = parseInt(adultCount.value)||0;
     const kids = parseInt(kidCount.value)||0;
-    const adultRate = rates[`Adult${rate}${curr}`].price;
-    const kidRate = rates[`Kids${rate}${curr}`].price;
-    const gstPercent = rates[`Adult${rate}${curr}`].GST;
-    const totalAdults = adults * adultRate;
-    const totalKids = kids * kidRate;
-    const subtotal = totalAdults + totalKids;
-    const gstAmount = subtotal * (gstPercent / 100);
+    const adultRate = rates[`Adult${rate}${curr}`]?.price || 0;
+    const kidRate = rates[`Kids${rate}${curr}`]?.price || 0;
+    const gstPercent = rates[`Adult${rate}${curr}`]?.GST || 0;
+    const subtotal = adults * adultRate + kids * kidRate;
+    const gstAmount = subtotal * (gstPercent/100);
     const total = subtotal + gstAmount;
 
-    totalAdultsField.value = totalAdults.toFixed(2);
-    totalKidsField.value = totalKids.toFixed(2);
+    totalAdultsField.value = subtotal.toFixed(2);
     gstField.value = gstAmount.toFixed(2);
     totalField.value = total.toFixed(2);
 
-    if(paymentType.value === "Cash"){
-      const given = parseFloat(givenAmount.value)||0;
-      balanceField.value = (given - total).toFixed(2);
-    } else {
-      balanceField.value = "";
-    }
+    return total;
   }
 
-  [currencyType, rateType, adultCount, kidCount, givenAmount].forEach(el=>{
+  [currencyType, rateType, adultCount, kidCount].forEach(el => {
     el.addEventListener("input", calculate);
     el.addEventListener("change", calculate);
   });
 
-  window.addEventListener("DOMContentLoaded", () => {
-    toggleCashFields();
-    calculate();
-  });
+  window.addEventListener("DOMContentLoaded", calculate);
 
-  // Save and redirect
+  // Save booking
   document.getElementById("saveBtn").addEventListener("click", async () => {
-    const totals = calculate();
-    // Get next receipt number from Firestore (transaction)
+    const total = calculate();
     const counterRef = db.collection("counters").doc("receiptCounter");
     const nextReceiptNo = await db.runTransaction(async transaction => {
       const doc = await transaction.get(counterRef);
@@ -274,6 +283,8 @@
     const data = {
       date: dateField.value,
       qrCode: qrInput.value || null,
+      loginUser: document.getElementById("loginUser").value,
+      shift: document.getElementById("shift").value,
       name: nameField.value,
       flight: flightField.value,
       seat: seatField.value,
@@ -282,19 +293,13 @@
       adults: parseInt(adultCount.value)||0,
       kids: parseInt(kidCount.value)||0,
       paymentType: paymentType.value,
-      givenAmount: paymentType.value==="Cash"?parseFloat(givenAmount.value)||0:null,
-      balance: paymentType.value==="Cash"?parseFloat(balanceField.value)||0:null,
       receiptNo: nextReceiptNo,
-      totalAdults: parseFloat(totalAdultsField.value),
-      totalKids: parseFloat(totalKidsField.value),
-      gst: parseFloat(gstField.value),
-      total: parseFloat(totalField.value),
+      total: total,
       timestamp: new Date()
     };
 
     try {
       await db.collection("bookings").add(data);
-      // Redirect to receipt page with receiptNo
       window.location.href = `receipt.html?receiptNo=${nextReceiptNo}`;
     } catch(err){
       alert("Error saving: " + err.message);
