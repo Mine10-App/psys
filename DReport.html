@@ -7,23 +7,25 @@
   body {
     font-family: Arial, sans-serif;
     margin: 20px;
-    background: #f4f6f9;
+    background: #f9f9f9;
+    color: #000;
   }
   #reportContainer {
-    width: 210mm; /* A4 width */
-    min-height: 297mm; /* A4 height */
+    width: 210mm;
+    min-height: 297mm;
     margin: auto;
     background: #fff;
     padding: 25px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
     page-break-after: always;
   }
-  h1, h2, h3 { text-align: center; margin: 10px 0; }
+  h1, h2, h3 { text-align: center; margin: 10px 0; color: #000; }
   table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
     font-size: 12px;
+    color: #000;
   }
   th, td {
     border: 1px solid #333;
@@ -31,19 +33,19 @@
     text-align: left;
   }
   th {
-    background: #007bff;
-    color: white;
+    background: #ccc;
+    color: #000;
   }
   .summary {
     margin-top: 20px;
     font-size: 13px;
   }
   .summary div {
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     font-weight: bold;
   }
   .voided {
-    color: red;
+    color: #900;
     font-weight: bold;
   }
   button {
@@ -52,13 +54,12 @@
     font-size: 1rem;
     cursor: pointer;
     border-radius: 6px;
-    border: 1px solid #007bff;
-    background: #007bff;
-    color: white;
+    border: 1px solid #333;
+    background: #ccc;
+    color: #000;
   }
   button:hover {
-    background: #0056b3;
-    border-color: #0056b3;
+    background: #aaa;
   }
   @media print {
     body { background: #fff; }
@@ -146,14 +147,27 @@ generateBtn.addEventListener("click", async () => {
       .get();
 
     let totalsCashByCurrency = {};
-    let totalsNonCashByType = {};
+    let totalsNonCashByTypeCurrency = {};
+    let voidedByTypeCurrency = {};
+
     receiptsTableBody.innerHTML = "";
     voidedTableBody.innerHTML = "";
 
     snapshot.docs.forEach(doc => {
       const data = doc.data();
 
+      const key = `${data.paymentType} (${data.currency})`;
+
       if(data.voided){
+        // Voided totals to subtract later
+        if(data.paymentType.toLowerCase() === "cash"){
+          if(!voidedByTypeCurrency[data.currency]) voidedByTypeCurrency[data.currency] = 0;
+          voidedByTypeCurrency[data.currency] += data.total;
+        } else {
+          if(!voidedByTypeCurrency[key]) voidedByTypeCurrency[key] = 0;
+          voidedByTypeCurrency[key] += data.total;
+        }
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${data.receiptNo}</td>
@@ -163,7 +177,9 @@ generateBtn.addEventListener("click", async () => {
           <td>${data.total.toFixed(2)}</td>
         `;
         voidedTableBody.appendChild(tr);
+
       } else {
+        // Active receipts table
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${data.receiptNo}</td>
@@ -181,20 +197,29 @@ generateBtn.addEventListener("click", async () => {
           if(!totalsCashByCurrency[data.currency]) totalsCashByCurrency[data.currency] = 0;
           totalsCashByCurrency[data.currency] += data.total;
         } else {
-          if(!totalsNonCashByType[data.paymentType]) totalsNonCashByType[data.paymentType] = 0;
-          totalsNonCashByType[data.paymentType] += data.total;
+          if(!totalsNonCashByTypeCurrency[key]) totalsNonCashByTypeCurrency[key] = 0;
+          totalsNonCashByTypeCurrency[key] += data.total;
         }
       }
     });
 
+    // Subtract voided amounts
+    for(const curr in totalsCashByCurrency){
+      if(voidedByTypeCurrency[curr]) totalsCashByCurrency[curr] -= voidedByTypeCurrency[curr];
+    }
+    for(const key in totalsNonCashByTypeCurrency){
+      if(voidedByTypeCurrency[key]) totalsNonCashByTypeCurrency[key] -= voidedByTypeCurrency[key];
+    }
+
     // Build summary
-    summaryDiv.innerHTML = "<h3>Summary (Active Receipts Only)</h3>";
+    summaryDiv.innerHTML = "<h3>Summary (Active Receipts Only, Voided Excluded)</h3>";
 
     for(const curr in totalsCashByCurrency){
       summaryDiv.innerHTML += `<div>Total Cash in ${curr}: ${totalsCashByCurrency[curr].toFixed(2)}</div>`;
     }
-    for(const pay in totalsNonCashByType){
-      summaryDiv.innerHTML += `<div>Total by ${pay}: ${totalsNonCashByType[pay].toFixed(2)}</div>`;
+
+    for(const key in totalsNonCashByTypeCurrency){
+      summaryDiv.innerHTML += `<div>Total by ${key}: ${totalsNonCashByTypeCurrency[key].toFixed(2)}</div>`;
     }
 
   } catch(err){
