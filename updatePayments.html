@@ -43,33 +43,56 @@
 <script>
 const tableBody = document.querySelector("#paymentsTable tbody");
 
-// Load non-cash payments
+// Load payments needing refinement
 async function loadPayments(){
   tableBody.innerHTML = "<tr><td colspan='8'>Loading...</td></tr>";
-  const snapshot = await db.collection("bookings")
-    .where("paymentType","!=","Cash")
-    .orderBy("paymentType")
-    .get();
+  let results = [];
 
-  if(snapshot.empty){
-    tableBody.innerHTML = "<tr><td colspan='8'>No records found</td></tr>";
+  // Query 1: Card (generic quick entries)
+  const cardSnap = await db.collection("bookings")
+    .where("paymentType", "==", "Card")
+    .get();
+  cardSnap.forEach(doc => results.push({ id: doc.id, ...doc.data() }));
+
+  // Query 2: Non-cash but incomplete
+  const nonCashSnap = await db.collection("bookings")
+    .where("paymentType", "!=", "Cash")
+    .get();
+  nonCashSnap.forEach(doc => {
+    const d = doc.data();
+    if (!d.batchNo || !d.approvalCode) {
+      results.push({ id: doc.id, ...d });
+    }
+  });
+
+  // Deduplicate by receiptNo
+  const unique = {};
+  results.forEach(r => unique[r.receiptNo] = r);
+  results = Object.values(unique);
+
+  if (results.length === 0){
+    tableBody.innerHTML = "<tr><td colspan='8'>No pending approvals</td></tr>";
     return;
   }
 
   tableBody.innerHTML = "";
-  snapshot.forEach(doc=>{
-    const data = doc.data();
+  results.forEach(data=>{
     const row = document.createElement("tr");
 
     row.innerHTML = `
       <td>${data.receiptNo}</td>
       <td>${data.name}</td>
       <td>${data.flight}</td>
-      <td>${data.total.toFixed(2)} ${data.currency}</td>
+      <td>${Number(data.total).toFixed(2)} ${data.currency||""}</td>
       <td>
         <select class="payType">
-          <option ${data.paymentType==="Card"?"selected":""}>Card</option>
           <option ${data.paymentType==="Cash"?"selected":""}>Cash</option>
+          <option ${data.paymentType==="Card"?"selected":""}>Card</option>
+          <option ${data.paymentType==="Visa"?"selected":""}>Visa</option>
+          <option ${data.paymentType==="MasterCard"?"selected":""}>MasterCard</option>
+          <option ${data.paymentType==="Amex"?"selected":""}>Amex</option>
+          <option ${data.paymentType==="UnionPay"?"selected":""}>UnionPay</option>
+          <option ${data.paymentType==="Other"?"selected":""}>Other</option>
         </select>
       </td>
       <td><input type="text" class="batchNo" value="${data.batchNo||""}"></td>
@@ -80,27 +103,43 @@ async function loadPayments(){
       </td>
     `;
 
-    // Update button
+    // Update handler
     row.querySelector(".update").addEventListener("click", async ()=>{
       const newPayType = row.querySelector(".payType").value;
-      const batchNo = row.querySelector(".batchNo").value;
-      const approvalCode = row.querySelector(".approvalCode").value;
+      const batchNo = row.querySelector(".batchNo").value.trim();
+      const approvalCode = row.querySelector(".approvalCode").value.trim();
 
-      await db.collection("bookings").doc(doc.id).update({
+      // Validation
+      if (newPayType === "Cash"){
+        if (batchNo || approvalCode){
+          alert("Cash payments must not have Batch No or Approval Code.");
+          return;
+        }
+      } else if (newPayType === "Card"){
+        alert("Please specify the actual card type (Visa, MasterCard, etc.) before saving.");
+        return;
+      } else {
+        if (!batchNo || !approvalCode){
+          alert("Non-cash payments require Batch No and Approval Code.");
+          return;
+        }
+      }
+
+      await db.collection("bookings").doc(data.id).update({
         paymentType: newPayType,
-        batchNo: batchNo || null,
-        approvalCode: approvalCode || null
+        batchNo: newPayType==="Cash" ? null : batchNo,
+        approvalCode: newPayType==="Cash" ? null : approvalCode
       });
       alert("Updated!");
     });
 
-    // Print button
+    // Print handler
     row.querySelector(".print").addEventListener("click", ()=>{
       const updated = {
         ...data,
         paymentType: row.querySelector(".payType").value,
-        batchNo: row.querySelector(".batchNo").value,
-        approvalCode: row.querySelector(".approvalCode").value
+        batchNo: row.querySelector(".batchNo").value.trim(),
+        approvalCode: row.querySelector(".approvalCode").value.trim()
       };
       printReceipt(updated);
     });
@@ -109,7 +148,7 @@ async function loadPayments(){
   });
 }
 
-// Receipt printer
+// Receipt printer (same as yours, unchanged)
 function printReceipt(booking){
   const htmlReceipt = `
     <div class="receipt-box">
@@ -158,5 +197,6 @@ function printReceipt(booking){
 
 loadPayments();
 </script>
+
 </body>
 </html>
