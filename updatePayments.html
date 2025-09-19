@@ -109,7 +109,6 @@ async function loadPayments() {
       const batchNo = row.querySelector(".batchNo").value.trim();
       const approvalCode = row.querySelector(".approvalCode").value.trim();
 
-      // Validation
       if (newPayType === "Cash") {
         if (batchNo || approvalCode) {
           alert("Cash payments must not have Batch No or Approval Code.");
@@ -133,7 +132,7 @@ async function loadPayments() {
       alert("Updated!");
     });
 
-    // Print handler -> opens Receipt Viewer
+    // Print handler -> opens Receipt Viewer page
     row.querySelector(".print").addEventListener("click", () => {
       const updated = {
         ...data,
@@ -141,8 +140,12 @@ async function loadPayments() {
         batchNo: row.querySelector(".batchNo").value.trim(),
         approvalCode: row.querySelector(".approvalCode").value.trim()
       };
+
+      // Save booking data to localStorage
       localStorage.setItem("printBooking", JSON.stringify(updated));
-      window.open("receiptViewer.html", "_blank"); // your print page
+
+      // Open receipt viewer page
+      window.open("receiptViewer.html", "_blank");
     });
 
     tableBody.appendChild(row);
@@ -151,7 +154,6 @@ async function loadPayments() {
 
 loadPayments();
 </script>
-
 
 </body>
 </html>
