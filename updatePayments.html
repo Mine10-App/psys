@@ -44,7 +44,7 @@
 const tableBody = document.querySelector("#paymentsTable tbody");
 
 // Load payments needing refinement
-async function loadPayments(){
+async function loadPayments() {
   tableBody.innerHTML = "<tr><td colspan='8'>Loading...</td></tr>";
   let results = [];
 
@@ -70,13 +70,13 @@ async function loadPayments(){
   results.forEach(r => unique[r.receiptNo] = r);
   results = Object.values(unique);
 
-  if (results.length === 0){
+  if (results.length === 0) {
     tableBody.innerHTML = "<tr><td colspan='8'>No pending approvals</td></tr>";
     return;
   }
 
   tableBody.innerHTML = "";
-  results.forEach(data=>{
+  results.forEach(data => {
     const row = document.createElement("tr");
 
     row.innerHTML = `
@@ -104,22 +104,22 @@ async function loadPayments(){
     `;
 
     // Update handler
-    row.querySelector(".update").addEventListener("click", async ()=>{
+    row.querySelector(".update").addEventListener("click", async () => {
       const newPayType = row.querySelector(".payType").value;
       const batchNo = row.querySelector(".batchNo").value.trim();
       const approvalCode = row.querySelector(".approvalCode").value.trim();
 
       // Validation
-      if (newPayType === "Cash"){
-        if (batchNo || approvalCode){
+      if (newPayType === "Cash") {
+        if (batchNo || approvalCode) {
           alert("Cash payments must not have Batch No or Approval Code.");
           return;
         }
-      } else if (newPayType === "Card"){
+      } else if (newPayType === "Card") {
         alert("Please specify the actual card type (Visa, MasterCard, etc.) before saving.");
         return;
       } else {
-        if (!batchNo || !approvalCode){
+        if (!batchNo || !approvalCode) {
           alert("Non-cash payments require Batch No and Approval Code.");
           return;
         }
@@ -133,86 +133,25 @@ async function loadPayments(){
       alert("Updated!");
     });
 
-    // Print handler
-    row.querySelector(".print").addEventListener("click", ()=>{
+    // Print handler -> opens Receipt Viewer
+    row.querySelector(".print").addEventListener("click", () => {
       const updated = {
         ...data,
         paymentType: row.querySelector(".payType").value,
         batchNo: row.querySelector(".batchNo").value.trim(),
         approvalCode: row.querySelector(".approvalCode").value.trim()
       };
-      printReceipt(updated);
+      localStorage.setItem("printBooking", JSON.stringify(updated));
+      window.open("receiptViewer.html", "_blank"); // your print page
     });
 
     tableBody.appendChild(row);
   });
 }
 
-// Receipt printer formatted for 80x297 mm roll
-function printReceipt(booking) {
-  if (!booking) return;
-  const htmlReceipt = `
-    <div class="receipt-box">
-      <h2>${companyInfo?.name || ""}</h2>
-      <p>${companyInfo?.address || ""}</p>
-      <p>${companyInfo?.phone || ""}</p>
-      <h3>Payment Receipt</h3>
-      <div class="receipt-line"></div>
-      <table style="width:100%; font-size:12px;">
-        <tr><td>Receipt No:</td><td style="text-align:right;">${booking.receiptNo}</td></tr>
-        <tr><td>Date:</td><td style="text-align:right;">${booking.date || ""}</td></tr>
-        <tr><td>Name:</td><td style="text-align:right;">${booking.name || ""}</td></tr>
-        <tr><td>Flight No:</td><td style="text-align:right;">${booking.flight || ""}</td></tr>
-        <tr><td>Seat No:</td><td style="text-align:right;">${booking.seat || ""}</td></tr>
-        <tr><td>Adults:</td><td style="text-align:right;">${booking.adults ?? 0}</td></tr>
-        <tr><td>Kids:</td><td style="text-align:right;">${booking.kids ?? 0}</td></tr>
-        <tr><td>GST:</td><td style="text-align:right;">${(booking.gst ?? 0).toFixed(2)}</td></tr>
-        <tr><td>Total:</td><td style="text-align:right;">${(booking.total ?? 0).toFixed(2)} ${booking.currency || ""}</td></tr>
-        <tr><td>Payment:</td><td style="text-align:right;">${booking.paymentType}</td></tr>
-        ${booking.paymentType === "Cash"
-          ? `<tr><td>Given:</td><td style="text-align:right;">${(booking.givenAmount ?? 0).toFixed(2)}</td></tr>
-             <tr><td>Balance:</td><td style="text-align:right;">${(booking.balance ?? 0).toFixed(2)}</td></tr>`
-          : ""}
-        ${booking.batchNo ? `<tr><td>Batch No:</td><td style="text-align:right;">${booking.batchNo}</td></tr>` : ""}
-        ${booking.approvalCode ? `<tr><td>Approval:</td><td style="text-align:right;">${booking.approvalCode}</td></tr>` : ""}
-      </table>
-      <div class="receipt-line"></div>
-      <p style="text-align:center;">This package is valid for 3 hours</p>
-    </div>
-  `;
-
-  const printWindow = window.open('', '_blank', 'width=400,height=600');
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <title>Receipt ${booking.receiptNo}</title>
-        <style>
-          body { font-family: monospace; font-size:12px; padding:5px; width:80mm; margin:0; }
-          h2,h3,p { text-align:center; margin:2px; }
-          .receipt-line { border-bottom:1px dashed #000; margin:5px 0; }
-          table { width:100%; border-collapse:collapse; }
-          td { padding:2px 0; }
-          td:first-child { text-align:left; }
-          td:last-child { text-align:right; }
-          @media print { body { margin:0; } }
-        </style>
-      </head>
-      <body>${htmlReceipt}</body>
-    </html>
-  `);
-  printWindow.document.close();
-
-  // Ensure content is fully loaded before printing
-  printWindow.onload = function() {
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
-  };
-}
-
 loadPayments();
 </script>
+
 
 </body>
 </html>
