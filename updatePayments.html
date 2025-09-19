@@ -149,7 +149,7 @@ async function loadPayments(){
 }
 
 // Receipt printer formatted for 80x297 mm roll
-function printReceipt(booking){
+function printReceipt(booking) {
   const htmlReceipt = `
     <div class="receipt-box">
       <h2>${companyInfo.name}</h2>
@@ -176,17 +176,11 @@ function printReceipt(booking){
     </div>
   `;
 
-  const w = window.open('', 'PRINT', 'height=600,width=400');
+  const w = window.open('', '_blank', 'width=400,height=600');
   w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${booking.receiptNo}</title>
     <style>
       @page { size: 80mm 297mm; margin: 0; }
-      body {
-        font-family: monospace;
-        font-size: 12px;
-        padding: 5px;
-        margin: 0;
-        width: 80mm;
-      }
+      body { font-family: monospace; font-size: 12px; padding:5px; margin:0; width:80mm; }
       h2,h3,p { text-align:center; margin:2px; }
       .receipt-line { border-bottom:1px dashed #000; margin:5px 0; }
       table { width:100%; border-collapse:collapse; }
@@ -195,11 +189,15 @@ function printReceipt(booking){
       td:last-child { text-align:right; }
       @media print { body { margin:0; } }
     </style>
-    </head><body>${htmlReceipt}</body></html>`);
+  </head><body>${htmlReceipt}</body></html>`);
+
+  // Wait until content is fully loaded
   w.document.close();
-  w.focus();
-  w.print();
-  w.close();
+  w.onload = function() {
+    w.focus();
+    w.print();
+    w.close();
+  };
 }
 
 loadPayments();
