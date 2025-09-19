@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Firebase Backup & Print</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    button { margin: 5px 0; padding: 8px 12px; }
+    input[type=file] { margin: 5px 0; }
+    h2 { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h2>Firebase Backup & Receipt Tool</h2>
+
+  <button id="backupBtn">Download Backup</button><br>
+  <button id="deleteBtn">Delete All Data</button><br>
+  <input type="file" id="backupFile" accept=".json"><br>
+  <button id="printBackup">Print First Receipt from Backup</button>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="fire1.js"></script>
+  <script>
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let backupData = null;
+
+    // --- Download Backup ---
+    async function downloadBackup() {
+      const collections = ["bookings"]; // Add more collections if needed
+      const data = {};
+
+      for (let col of collections) {
+        const snapshot = await db.collection(col).get();
+        data[col] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      }
+
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `firebase_backup_${new Date().toISOString()}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      alert("Backup downloaded!");
+    }
+
+    // --- Delete all Firebase data ---
+    async function deleteData() {
+      if (!confirm("Are you sure? This will permanently delete all data!")) return;
+      const collections = ["bookings"];
+      for (let col of collections) {
+        const snapshot = await db.collection(col).get();
+        const batch = db.batch();
+        snapshot.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+      }
+      alert("All data deleted!");
+    }
+
+    // --- Load backup JSON from file ---
+    document.getElementById("backupFile").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        backupData = JSON.parse(reader.result);
+        alert("Backup loaded! You can now print receipts.");
+      };
+      reader.readAsText(file);
+    });
+
+    // --- Print receipt from backup ---
+    document.getElementById("printBackup").addEventListener("click", () => {
+      if (!backupData || !backupData.bookings || backupData.bookings.length === 0) {
+        alert("No backup data loaded or backup is empty!");
+        return;
+      }
+
+      // Print first record (you can loop for all)
+      const booking = backupData.bookings[0];
+
+      const htmlReceipt = `
+        <div style="font-family:monospace; font-size:12px; width:80mm;">
+          <h2>Company Name</h2>
+          <p>Address Line</p>
+          <p>Phone Number</p>
+          <h3>Payment Receipt</h3>
+          <hr>
+          <table style="width:100%;">
+            <tr><td>Receipt No:</td><td style="text-align:right;">${booking.receiptNo}</td></tr>
+            <tr><td>Date:</td><td style="text-align:right;">${booking.date || ""}</td></tr>
+            <tr><td>Name:</td><td style="text-align:right;">${booking.name || ""}</td></tr>
+            <tr><td>Flight No:</td><td style="text-align:right;">${booking.flight || ""}</td></tr>
+            <tr><td>Seat No:</td><td style="text-align:right;">${booking.seat || ""}</td></tr>
+            <tr><td>Adults:</td><td style="text-align:right;">${booking.adults ?? 0}</td></tr>
+            <tr><td>Kids:</td><td style="text-align:right;">${booking.kids ?? 0}</td></tr>
+            <tr><td>GST:</td><td style="text-align:right;">${(booking.gst ?? 0).toFixed(2)}</td></tr>
+            <tr><td>Total:</td><td style="text-align:right;">${(booking.total ?? 0).toFixed(2)} ${booking.currency || ""}</td></tr>
+            <tr><td>Payment:</td><td style="text-align:right;">${booking.paymentType}</td></tr>
+            ${booking.paymentType !== "Cash" ? `<tr><td>Batch No:</td><td style="text-align:right;">${booking.batchNo || "-"}</td></tr>
+            <tr><td>Approval:</td><td style="text-align:right;">${booking.approvalCode || "-"}</td></tr>` : `
+            <tr><td>Given:</td><td style="text-align:right;">${booking.givenAmount ?? 0}</td></tr>
+            <tr><td>Balance:</td><td style="text-align:right;">${booking.balance ?? 0}</td></tr>`}
+          </table>
+          <hr>
+          <p style="text-align:center;">This package is valid for 3 hours</p>
+        </div>
+      `;
+
+      const w = window.open('', 'PRINT', 'height=600,width=400');
+      w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${booking.receiptNo}</title>
+        <style>
+          @media print { body { margin:0; } }
+        </style>
+      </head><body>${htmlReceipt}</body></html>`);
+      w.document.close();
+      w.focus();
+      w.print();
+      w.close();
+    });
+
+    document.getElementById("backupBtn").addEventListener("click", downloadBackup);
+    document.getElementById("deleteBtn").addEventListener("click", deleteData);
+  </script>
+</body>
+</html>
