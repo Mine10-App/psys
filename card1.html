@@ -9,6 +9,7 @@
   form { max-width: 800px; margin: auto; background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 3px 15px rgba(0,0,0,0.1); font-size: 14px; }
   label { display: block; margin-top: 6px; font-weight: bold; font-size: 13px; }
   input, select, button { padding: 6px; width: 100%; margin-top: 3px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 13px; }
+  input[type="text"] { text-transform: uppercase; }
   .readonly-field { background: #f0f0f0; }
   .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
   .full-width { grid-column: 1 / -1; }
@@ -16,13 +17,6 @@
   button { width: 100%; background: #007bff; color: white; font-size: 1rem; cursor: pointer; margin-top: 15px; padding: 10px; }
   button:hover { background: #0056b3; }
   #receiptNo { display: none; }
-  /* Receipt box inside page */
-  .receipt-box {
-    background:#fff; border:1px solid #ccc; padding:10px; width:320px; margin:15px auto;
-    font-family:monospace; font-size:12px;
-  }
-  .receipt-box h2,.receipt-box h3,.receipt-box p { text-align:center; margin:2px; }
-  .receipt-line { border-bottom:1px dashed #000; margin:5px 0; }
 </style>
 </head>
 <body>
@@ -138,6 +132,11 @@ const outputDiv = document.getElementById("output");
 dateField.value = new Date().toISOString().split('T')[0];
 cashFields.style.display = "none";
 
+// Auto-uppercase for all text fields
+document.querySelectorAll('input[type="text"]').forEach(input => {
+  input.addEventListener('input', e => e.target.value = e.target.value.toUpperCase());
+});
+
 // QR Code Parser
 function parseQR(code){
   code = code.trim().toUpperCase().replace(/\s+/g,' ');
@@ -164,12 +163,12 @@ function parseQR(code){
   return {name, flightNo, seatNo};
 }
 
-qrInput.addEventListener("change", ()=>{
+qrInput.addEventListener("change", ()=> {
   const parsed = parseQR(qrInput.value);
   if(parsed.name) nameField.value = parsed.name;
   if(parsed.flightNo) flightField.value = parsed.flightNo;
   if(parsed.seatNo) seatField.value = parsed.seatNo;
-  qrInput.value='';
+  qrInput.value = '';
 });
 
 // Calculate totals
@@ -213,65 +212,16 @@ function toggleCashFields() {
   }
 }
 
+// Get next receipt number
 function getNextReceiptNo() {
   const counterRef = db.collection("counters").doc("receiptCounter");
-  return db.runTransaction(async (transaction)=>{
+  return db.runTransaction(async transaction => {
     const doc = await transaction.get(counterRef);
     let current = 0;
     if(!doc.exists){ transaction.set(counterRef, {current: 1}); current = 1; }
-    else{ current = doc.data().current + 1; transaction.update(counterRef, {current}); }
+    else{ current = doc.data().current + 1; transaction.update(counterRef, {current}); current = doc.data().current + 1; }
     return current;
   });
-}
-
-// Print receipt
-function printReceipt(booking){
-  const htmlReceipt = `
-    <div class="receipt-box">
-      <h2>${companyInfo.name}</h2>
-      <p>${companyInfo.address}</p>
-      <p>${companyInfo.phone}</p>
-      <h3>Payment Receipt</h3>
-      <div class="receipt-line"></div>
-      <table style="width:100%; font-size:12px;">
-        <tr><td>Receipt No:</td><td style="text-align:right;">${booking.receiptNo}</td></tr>
-        <tr><td>Date:</td><td style="text-align:right;">${booking.date}</td></tr>
-        <tr><td>Name:</td><td style="text-align:right;">${booking.name}</td></tr>
-        <tr><td>Flight No:</td><td style="text-align:right;">${booking.flight}</td></tr>
-        <tr><td>Seat No:</td><td style="text-align:right;">${booking.seat}</td></tr>
-        <tr><td>Adults:</td><td style="text-align:right;">${booking.adults ?? 0}</td></tr>
-        <tr><td>Kids:</td><td style="text-align:right;">${booking.kids ?? 0}</td></tr>
-        <tr><td>GST:</td><td style="text-align:right;">${(booking.gst ?? 0).toFixed(2)}</td></tr>
-        <tr><td>Total:</td><td style="text-align:right;">${(booking.total ?? 0).toFixed(2)} ${booking.currency}</td></tr>
-        <tr><td>Payment:</td><td style="text-align:right;">${booking.paymentType}</td></tr>
-        ${booking.paymentType==="Cash"
-          ? `<tr><td>Given:</td><td style="text-align:right;">${(booking.givenAmount??0).toFixed(2)}</td></tr>
-             <tr><td>Balance:</td><td style="text-align:right;">${(booking.balance??0).toFixed(2)}</td></tr>`
-          : ""}
-      </table>
-      <div class="receipt-line"></div>
-      <p style="text-align:center;">This package is valid for 3 hours</p>
-    </div>
-  `;
-
-  // open print window directly
-  const w = window.open('','PRINT','height=600,width=400');
-  w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${booking.receiptNo}</title>
-    <style>
-      body{font-family:monospace; font-size:12px; padding:5px; width:80mm;}
-      h2,h3,p{text-align:center; margin:2px;}
-      .receipt-line{border-bottom:1px dashed #000;margin:5px 0;}
-      table{width:100%; border-collapse:collapse;}
-      td{padding:2px 0;}
-      td:first-child{text-align:left;}
-      td:last-child{text-align:right;}
-      @media print{body{margin:0;}}
-    </style>
-    </head><body>${htmlReceipt}</body></html>`);
-  w.document.close();
-  w.focus();
-  w.print();
-  w.close();
 }
 
 // Event listeners
@@ -283,7 +233,7 @@ paymentType.addEventListener("change", ()=>{ toggleCashFields(); calculate(); })
 window.addEventListener("DOMContentLoaded", ()=>{ toggleCashFields(); calculate(); });
 
 // Save Booking
-document.getElementById("saveBtn").addEventListener("click", async ()=>{
+document.getElementById("saveBtn").addEventListener("click", async ()=> {
   const totals = calculate();
   const nextReceiptNo = await getNextReceiptNo();
   receiptNo.value = nextReceiptNo;
@@ -311,17 +261,13 @@ document.getElementById("saveBtn").addEventListener("click", async ()=>{
 
   try {
     await db.collection("bookings").add(data);
-    printReceipt(data); // pass object instead of receipt number
-    document.getElementById("bookingForm").reset();
-    dateField.value = new Date().toISOString().split('T')[0];
-    toggleCashFields();
-    calculate();
+    // redirect to receipt.html with receipt number
+    window.location.href = `receipt.html?receiptNo=${nextReceiptNo}`;
   } catch(err) {
     outputDiv.innerHTML = `<p style="color:red;">Error saving: ${err.message}</p>`;
     console.error(err);
   }
 });
-
 </script>
 </body>
 </html>
