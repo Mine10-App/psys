@@ -81,9 +81,9 @@ async function loadPayments(){
 
     row.innerHTML = `
       <td>${data.receiptNo}</td>
-      <td>${data.name}</td>
-      <td>${data.flight}</td>
-      <td>${Number(data.total).toFixed(2)} ${data.currency||""}</td>
+      <td>${data.name || ""}</td>
+      <td>${data.flight || ""}</td>
+      <td>${Number(data.total || 0).toFixed(2)} ${data.currency || ""}</td>
       <td>
         <select class="payType">
           <option ${data.paymentType==="Cash"?"selected":""}>Cash</option>
@@ -95,8 +95,8 @@ async function loadPayments(){
           <option ${data.paymentType==="Other"?"selected":""}>Other</option>
         </select>
       </td>
-      <td><input type="text" class="batchNo" value="${data.batchNo||""}"></td>
-      <td><input type="text" class="approvalCode" value="${data.approvalCode||""}"></td>
+      <td><input type="text" class="batchNo" value="${data.batchNo || ""}"></td>
+      <td><input type="text" class="approvalCode" value="${data.approvalCode || ""}"></td>
       <td>
         <button class="update">Update</button>
         <button class="print">Print</button>
@@ -148,7 +148,7 @@ async function loadPayments(){
   });
 }
 
-// Receipt printer (same as yours, unchanged)
+// Receipt printer formatted for 80x297 mm roll
 function printReceipt(booking){
   const htmlReceipt = `
     <div class="receipt-box">
@@ -159,34 +159,41 @@ function printReceipt(booking){
       <div class="receipt-line"></div>
       <table style="width:100%; font-size:12px;">
         <tr><td>Receipt No:</td><td style="text-align:right;">${booking.receiptNo}</td></tr>
-        <tr><td>Date:</td><td style="text-align:right;">${booking.date}</td></tr>
-        <tr><td>Name:</td><td style="text-align:right;">${booking.name}</td></tr>
-        <tr><td>Flight No:</td><td style="text-align:right;">${booking.flight}</td></tr>
-        <tr><td>Seat No:</td><td style="text-align:right;">${booking.seat}</td></tr>
+        <tr><td>Date:</td><td style="text-align:right;">${booking.date || ""}</td></tr>
+        <tr><td>Name:</td><td style="text-align:right;">${booking.name || ""}</td></tr>
+        <tr><td>Flight No:</td><td style="text-align:right;">${booking.flight || ""}</td></tr>
+        <tr><td>Seat No:</td><td style="text-align:right;">${booking.seat || ""}</td></tr>
         <tr><td>Adults:</td><td style="text-align:right;">${booking.adults ?? 0}</td></tr>
         <tr><td>Kids:</td><td style="text-align:right;">${booking.kids ?? 0}</td></tr>
         <tr><td>GST:</td><td style="text-align:right;">${(booking.gst ?? 0).toFixed(2)}</td></tr>
-        <tr><td>Total:</td><td style="text-align:right;">${(booking.total ?? 0).toFixed(2)} ${booking.currency}</td></tr>
+        <tr><td>Total:</td><td style="text-align:right;">${(booking.total ?? 0).toFixed(2)} ${booking.currency || ""}</td></tr>
         <tr><td>Payment:</td><td style="text-align:right;">${booking.paymentType}</td></tr>
-        ${booking.batchNo ? `<tr><td>Batch No:</td><td style="text-align:right;">${booking.batchNo}</td></tr>`:""}
-        ${booking.approvalCode ? `<tr><td>Approval:</td><td style="text-align:right;">${booking.approvalCode}</td></tr>`:""}
+        ${booking.batchNo ? `<tr><td>Batch No:</td><td style="text-align:right;">${booking.batchNo}</td></tr>` : ""}
+        ${booking.approvalCode ? `<tr><td>Approval:</td><td style="text-align:right;">${booking.approvalCode}</td></tr>` : ""}
       </table>
       <div class="receipt-line"></div>
       <p style="text-align:center;">This package is valid for 3 hours</p>
     </div>
   `;
 
-  const w = window.open('','PRINT','height=600,width=400');
+  const w = window.open('', 'PRINT', 'height=600,width=400');
   w.document.write(`<!DOCTYPE html><html><head><title>Receipt ${booking.receiptNo}</title>
     <style>
-      body{font-family:monospace; font-size:12px; padding:5px; width:80mm;}
-      h2,h3,p{text-align:center; margin:2px;}
-      .receipt-line{border-bottom:1px dashed #000;margin:5px 0;}
-      table{width:100%; border-collapse:collapse;}
-      td{padding:2px 0;}
-      td:first-child{text-align:left;}
-      td:last-child{text-align:right;}
-      @media print{body{margin:0;}}
+      @page { size: 80mm 297mm; margin: 0; }
+      body {
+        font-family: monospace;
+        font-size: 12px;
+        padding: 5px;
+        margin: 0;
+        width: 80mm;
+      }
+      h2,h3,p { text-align:center; margin:2px; }
+      .receipt-line { border-bottom:1px dashed #000; margin:5px 0; }
+      table { width:100%; border-collapse:collapse; }
+      td { padding:2px 0; }
+      td:first-child { text-align:left; }
+      td:last-child { text-align:right; }
+      @media print { body { margin:0; } }
     </style>
     </head><body>${htmlReceipt}</body></html>`);
   w.document.close();
