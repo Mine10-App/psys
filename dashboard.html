@@ -16,6 +16,19 @@
     padding: 20px;
     text-align: center;
     font-size: 1.5rem;
+    position: relative;
+  }
+  #notification {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: red;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: none; /* hidden initially */
   }
   main {
     display: grid;
@@ -57,7 +70,10 @@
 </head>
 <body>
 
-<header>Walkin System Dashboard</header>
+<header>
+  Walkin System Dashboard
+  <div id="notification">0 Pending</div>
+</header>
 <div id="welcome"></div>
 
 <main>
@@ -71,8 +87,14 @@
 
 <footer>&copy; 2025 Walkin Payment System</footer>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="fire1.js"></script>
+
 <script>
 const welcomeDiv = document.getElementById("welcome");
+const notificationDiv = document.getElementById("notification");
 
 // Check if user is logged in
 const name = sessionStorage.getItem("name");
@@ -83,23 +105,45 @@ if(!name){
 }
 
 // Button redirects
-document.getElementById("newBookingBtn").addEventListener("click", ()=>{
-  window.location.href = "card.html";
-});
-document.getElementById("printReceiptBtn").addEventListener("click", ()=>{
-  window.location.href = "receipt.html";
-});
-document.getElementById("dailyReportBtn").addEventListener("click", ()=>{
-  window.location.href = "DReport.html";
-});
-document.getElementById("editBookingBtn").addEventListener("click", ()=>{
-  window.location.href = "edit_booking.html";
-});
+document.getElementById("newBookingBtn").addEventListener("click", ()=>{ window.location.href = "card.html"; });
+document.getElementById("printReceiptBtn").addEventListener("click", ()=>{ window.location.href = "receipt.html"; });
+document.getElementById("dailyReportBtn").addEventListener("click", ()=>{ window.location.href = "DReport.html"; });
+document.getElementById("editBookingBtn").addEventListener("click", ()=>{ window.location.href = "edit_booking.html"; });
+document.getElementById("logoutBtn").addEventListener("click", ()=>{ sessionStorage.clear(); window.location.href = "index.html"; });
 
-document.getElementById("logoutBtn").addEventListener("click", ()=>{
-  sessionStorage.clear();
-  window.location.href = "index.html";
-});
+// Notification: check for pending updates
+async function checkPendingUpdates() {
+  try {
+    const results = [];
+    const cardSnap = await db.collection("bookings")
+      .where("paymentType", "==", "Card")
+      .get();
+    cardSnap.forEach(doc => results.push(doc.id));
+
+    const nonCashSnap = await db.collection("bookings")
+      .where("paymentType", "!=", "Cash")
+      .get();
+    nonCashSnap.forEach(doc => {
+      const d = doc.data();
+      if(!d.batchNo || !d.approvalCode) results.push(doc.id);
+    });
+
+    if(results.length > 0) {
+      notificationDiv.style.display = "inline-block";
+      notificationDiv.textContent = `${results.length} Pending`;
+      notificationDiv.onclick = () => {
+        window.location.href = "update_payment.html";
+      }
+    } else {
+      notificationDiv.style.display = "none";
+    }
+  } catch(err){
+    console.error("Error checking pending updates:", err);
+  }
+}
+
+// Run check on page load
+checkPendingUpdates();
 </script>
 
 </body>
